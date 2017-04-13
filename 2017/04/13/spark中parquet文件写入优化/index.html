@@ -12,7 +12,7 @@
 <meta property="og:url" content="http://yoursite.com/2017/04/13/spark中parquet文件写入优化/index.html">
 <meta property="og:site_name" content="Nora-一个程序媛的窝">
 <meta property="og:description" content="标签（空格分隔）： 性能优化  在我们的实际使用中，经常需要将原始的文本文件转换为parquet列存储格式，以便后续查询的时候使用。写parquet能提高后续表查询效率这个事情我们不多说，下面讨论一下写parquet文件的效率问题： 我们来看一下两段程序： 1.使用case class作为df转换 package com.baidu.yundata.transtoparquet  import j">
-<meta property="og:updated_time" content="2017-04-13T09:06:10.000Z">
+<meta property="og:updated_time" content="2017-04-13T09:15:22.000Z">
 <meta name="twitter:card" content="summary">
 <meta name="twitter:title" content="原创-spark中parquet文件写入优化">
 <meta name="twitter:description" content="标签（空格分隔）： 性能优化  在我们的实际使用中，经常需要将原始的文本文件转换为parquet列存储格式，以便后续查询的时候使用。写parquet能提高后续表查询效率这个事情我们不多说，下面讨论一下写parquet文件的效率问题： 我们来看一下两段程序： 1.使用case class作为df转换 package com.baidu.yundata.transtoparquet  import j">
@@ -55,7 +55,7 @@
         
           <a id="nav-rss-link" class="nav-icon" href="/atom.xml" title="RSS Feed"></a>
         
-        <a id="nav-search-btn" class="nav-icon" title="Search"></a>
+        <a id="nav-search-btn" class="nav-icon" title="Zoeken"></a>
       </nav>
       <div id="search-form-wrap">
         <form action="//google.com/search" method="get" accept-charset="UTF-8" class="search-form"><input type="search" name="q" class="search-form-input" placeholder="Search"><button type="submit" class="search-form-submit">&#xF002;</button><input type="hidden" name="sitesearch" value="http://yoursite.com"></form>
@@ -67,7 +67,7 @@
         <section id="main"><article id="post-spark中parquet文件写入优化" class="article article-type-post" itemscope itemprop="blogPost">
   <div class="article-meta">
     <a href="/2017/04/13/spark中parquet文件写入优化/" class="article-date">
-  <time datetime="2017-04-13T09:06:10.000Z" itemprop="datePublished">2017-04-13</time>
+  <time datetime="2017-04-13T09:15:22.000Z" itemprop="datePublished">2017-04-13</time>
 </a>
     
   <div class="article-category">
@@ -225,10 +225,8 @@ object transtoparquet{
     new transtoparquet(args(0),args(1),args(2),args(3)).run()
   }
   }
-
-
- 这个程序实际测试，原始数据9G，压缩后大概是5.5G左右，使用50个核跑了好几个小时，居然都没有写完数据，看executor日志，几B几B地在往hdfs当中去写日志。崩溃，于是，换了一种写法。
-</code></pre><p>2.使用row作为df转换</p>
+</code></pre><p>这个程序实际测试，原始数据9G，压缩后大概是5.5G左右，使用50个核跑了好几个小时，居然都没有写完数据，看executor日志，几B几B地在往hdfs当中去写日志。崩溃，于是，换了一种写法。</p>
+<p>2.使用row作为df转换</p>
 <pre><code>package com.baidu.yundata.transtoparquet
 
 
@@ -392,7 +390,7 @@ spark.sql.parquet.compression.codec=snappy
       
     </div>
     <footer class="article-footer">
-      <a data-url="http://yoursite.com/2017/04/13/spark中parquet文件写入优化/" data-id="cj1g6k9bk0001c33cssg18oe4" class="article-share-link">Share</a>
+      <a data-url="http://yoursite.com/2017/04/13/spark中parquet文件写入优化/" data-id="cj1g6w4au0000i83cdj7jza2j" class="article-share-link">Delen</a>
       
       
     </footer>
@@ -402,7 +400,7 @@ spark.sql.parquet.compression.codec=snappy
 <nav id="article-nav">
   
     <a href="/2017/04/13/在kerberos-HA环境下的ranger编译安装/" id="article-nav-newer" class="article-nav-link-wrap">
-      <strong class="article-nav-caption">Newer</strong>
+      <strong class="article-nav-caption">Nieuwer</strong>
       <div class="article-nav-title">
         
           原创-在kerberos+HA环境下的ranger编译安装
@@ -423,7 +421,7 @@ spark.sql.parquet.compression.codec=snappy
   
     
   <div class="widget-wrap">
-    <h3 class="widget-title">Categories</h3>
+    <h3 class="widget-title">Categorieën</h3>
     <div class="widget">
       <ul class="category-list"><li class="category-list-item"><a class="category-list-link" href="/categories/性能优化/">性能优化</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/部署文档/">部署文档</a></li></ul>
     </div>
@@ -438,7 +436,7 @@ spark.sql.parquet.compression.codec=snappy
   
     
   <div class="widget-wrap">
-    <h3 class="widget-title">Archives</h3>
+    <h3 class="widget-title">Archieven</h3>
     <div class="widget">
       <ul class="archive-list"><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/04/">April 2017</a></li></ul>
     </div>
@@ -448,7 +446,7 @@ spark.sql.parquet.compression.codec=snappy
   
     
   <div class="widget-wrap">
-    <h3 class="widget-title">Recent Posts</h3>
+    <h3 class="widget-title">Recente berichten</h3>
     <div class="widget">
       <ul>
         
