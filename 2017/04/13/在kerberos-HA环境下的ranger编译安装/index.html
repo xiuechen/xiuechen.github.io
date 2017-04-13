@@ -3,19 +3,19 @@
 <head>
   <meta charset="utf-8">
   
-  <title>在kerberos+HA环境下的ranger编译安装 | Nora-一个程序媛的窝</title>
+  <title>Nora-一个程序媛的窝</title>
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
-  <meta name="description" content="标签（空格分隔）： 部署文档  1.代码下载&amp;amp;编译 git clone https://github.com/apache/incubator-ranger.gitcd incubator-rangergit checkout ranger-0.5 mvn clean compile package assembly:assembly install 下载的过程中遇到python hash">
+  <meta name="description" content="title: 在kerberos+HA环境下的ranger编译安装标签（空格分隔）： 部署文档  1.代码下载&amp;amp;编译 git clone https://github.com/apache/incubator-ranger.gitcd incubator-rangergit checkout ranger-0.5 mvn clean compile package assembly">
 <meta name="keywords">
 <meta property="og:type" content="article">
-<meta property="og:title" content="在kerberos+HA环境下的ranger编译安装">
+<meta property="og:title" content="Nora-一个程序媛的窝">
 <meta property="og:url" content="http://yoursite.com/2017/04/13/在kerberos-HA环境下的ranger编译安装/index.html">
 <meta property="og:site_name" content="Nora-一个程序媛的窝">
-<meta property="og:description" content="标签（空格分隔）： 部署文档  1.代码下载&amp;amp;编译 git clone https://github.com/apache/incubator-ranger.gitcd incubator-rangergit checkout ranger-0.5 mvn clean compile package assembly:assembly install 下载的过程中遇到python hash">
-<meta property="og:updated_time" content="2017-04-13T03:22:04.000Z">
+<meta property="og:description" content="title: 在kerberos+HA环境下的ranger编译安装标签（空格分隔）： 部署文档  1.代码下载&amp;amp;编译 git clone https://github.com/apache/incubator-ranger.gitcd incubator-rangergit checkout ranger-0.5 mvn clean compile package assembly">
+<meta property="og:updated_time" content="2017-04-13T03:43:03.000Z">
 <meta name="twitter:card" content="summary">
-<meta name="twitter:title" content="在kerberos+HA环境下的ranger编译安装">
-<meta name="twitter:description" content="标签（空格分隔）： 部署文档  1.代码下载&amp;amp;编译 git clone https://github.com/apache/incubator-ranger.gitcd incubator-rangergit checkout ranger-0.5 mvn clean compile package assembly:assembly install 下载的过程中遇到python hash">
+<meta name="twitter:title" content="Nora-一个程序媛的窝">
+<meta name="twitter:description" content="title: 在kerberos+HA环境下的ranger编译安装标签（空格分隔）： 部署文档  1.代码下载&amp;amp;编译 git clone https://github.com/apache/incubator-ranger.gitcd incubator-rangergit checkout ranger-0.5 mvn clean compile package assembly">
   
     <link rel="alternate" href="/atom.xml" title="Nora-一个程序媛的窝" type="application/atom+xml">
   
@@ -67,26 +67,17 @@
         <section id="main"><article id="post-在kerberos-HA环境下的ranger编译安装" class="article article-type-post" itemscope itemprop="blogPost">
   <div class="article-meta">
     <a href="/2017/04/13/在kerberos-HA环境下的ranger编译安装/" class="article-date">
-  <time datetime="2017-04-13T03:22:04.000Z" itemprop="datePublished">2017-04-13</time>
+  <time datetime="2017-04-13T03:43:03.000Z" itemprop="datePublished">2017-04-13</time>
 </a>
     
   </div>
   <div class="article-inner">
     
     
-      <header class="article-header">
-        
-  
-    <h1 class="article-title" itemprop="name">
-      在kerberos+HA环境下的ranger编译安装
-    </h1>
-  
-
-      </header>
-    
     <div class="article-entry" itemprop="articleBody">
       
-        <p>标签（空格分隔）： 部署文档</p>
+        <hr>
+<h2 id="title-在kerberos-HA环境下的ranger编译安装"><a href="#title-在kerberos-HA环境下的ranger编译安装" class="headerlink" title="   title: 在kerberos+HA环境下的ranger编译安装"></a>   title: 在kerberos+HA环境下的ranger编译安装</h2><p>标签（空格分隔）： 部署文档</p>
 <hr>
 <p>1.代码下载&amp;编译</p>
 <p>git clone <a href="https://github.com/apache/incubator-ranger.git" target="_blank" rel="external">https://github.com/apache/incubator-ranger.git</a><br>cd incubator-ranger<br>git checkout ranger-0.5</p>
@@ -99,30 +90,57 @@
 <p>basedir =/home/bae/dataplatform/jumbo<br>datadir =/home/bae/dataplatform/jumbo/var<br>port = 3309<br>socket = /home/bae/dataplatform/jumbo/var/mysql.sock</p>
 <p>启动mysql:<br>./bin/mysql_install_db<br>./share/mysql/mysql.server start</p>
 <p>2)生成各个模块的keytab</p>
-<p>addprinc -randkey rangeradmin/gzhl-mco-yun-object0561.gzhl.baidu.com@EXAMPLE.COM</p>
-<p>xst -k /home/bae/dataplatform/kerberos/keytab/rangeradmin.keytab rangeradmin/gzhl-mco-yun-object0561.gzhl.baidu.com@EXAMPLE.COM</p>
-<p>addprinc -randkey rangerlookup/gzhl-mco-yun-object0561.gzhl.baidu.com@EXAMPLE.COM</p>
-<p>xst -k /home/bae/dataplatform/kerberos/keytab/rangerlookup.keytab rangerlookup/gzhl-mco-yun-object0561.gzhl.baidu.com@EXAMPLE.COM</p>
-<p>addprinc -randkey rangerusersync/gzhl-mco-yun-object0561.gzhl.baidu.com@EXAMPLE.COM</p>
-<p>xst -k /home/bae/dataplatform/kerberos/keytab/rangerusersync.keytab rangerusersync/gzhl-mco-yun-object0561.gzhl.baidu.com@EXAMPLE.COM</p>
-<p>addprinc -randkey rangertagsync/gzhl-mco-yun-object0561.gzhl.baidu.com@EXAMPLE.COM</p>
-<p>xst -k /home/bae/dataplatform/kerberos/keytab/rangertagsync.keytab rangertagsync/gzhl-mco-yun-object0561.gzhl.baidu.com@EXAMPLE.COM</p>
+<p>addprinc -randkey rangeradmin/hostA@EXAMPLE.COM</p>
+<p>xst -k /home/bae/dataplatform/kerberos/keytab/rangeradmin.keytab rangeradmin/hostA@EXAMPLE.COM</p>
+<p>addprinc -randkey rangerlookup/hostA@EXAMPLE.COM</p>
+<p>xst -k /home/bae/dataplatform/kerberos/keytab/rangerlookup.keytab rangerlookup/hostA@EXAMPLE.COM</p>
+<p>addprinc -randkey rangerusersync/hostA@EXAMPLE.COM</p>
+<p>xst -k /home/bae/dataplatform/kerberos/keytab/rangerusersync.keytab rangerusersync/hostA@EXAMPLE.COM</p>
+<p>addprinc -randkey rangertagsync/hostA@EXAMPLE.COM</p>
+<p>xst -k /home/bae/dataplatform/kerberos/keytab/rangertagsync.keytab rangertagsync/hostA@EXAMPLE.COM</p>
 <p>3)配置ranger-admin</p>
 <p>将ranger-0.5.4-SNAPSHOT-admin.tar.gz解压到安装目录下，修改install.properties,需要修改的选项如下：</p>
-<p>SQL_CONNECTOR_JAR=/home/bae/dataplatform/jumbo/lib/mysql/mysql-connector-java-5.1.41-bin.jar<br>db_root_user=root<br>db_root_password=<br>db_host=gzhl-mco-yun-object0561.gzhl:3309</p>
-<p>db_name=ranger<br>db_user=rangeradmin<br>db_password=123456</p>
-<p>audit_store=db<br>audit_db_name=ranger_audit<br>audit_db_user=rangerlogger<br>audit_db_password=123456</p>
-<p>policymgr_external_url=<a href="http://localhost:8070" target="_blank" rel="external">http://localhost:8070</a><br>policymgr_http_enabled=true</p>
-<p>unix_user=work<br>unix_group=work</p>
-<p>spnego_principal=HTTP/gzhl-mco-yun-object0561.gzhl.baidu.com@EXAMPLE.COM<br>spnego_keytab=/home/bae/dataplatform/kerberos/keytab/spnego.service.keytab<br>token_valid=30<br>cookie_domain=gzhl-mco-yun-object0561.gzhl.baidu.com<br>cookie_path=/</p>
-<p>admin_principal=rangeradmin/gzhl-mco-yun-object0561.gzhl.baidu.com@EXAMPLE.COM<br>admin_keytab=/home/bae/dataplatform/kerberos/keytab/rangeradmin.keytab<br>lookup_principal=rangerlookup/gzhl-mco-yun-object0561.gzhl.baidu.com@EXAMPLE.COM<br>lookup_keytab=/home/bae/dataplatform/kerberos/keytab/rangerlookup.keytab</p>
-<p>运行./setup.sh（root运行，否则报groupadd没有权限）</p>
+<pre><code>SQL_CONNECTOR_JAR=/home/bae/dataplatform/jumbo/lib/mysql/mysql-connector-java-5.1.41-bin.jar
+db_root_user=root
+db_root_password=
+db_host=hostMysql:3309
+
+db_name=ranger
+db_user=rangeradmin
+db_password=123456
+
+
+audit_store=db
+audit_db_name=ranger_audit
+audit_db_user=rangerlogger
+audit_db_password=123456
+
+
+policymgr_external_url=http://localhost:8070
+policymgr_http_enabled=true
+
+unix_user=work
+unix_group=work
+
+
+spnego_principal=HTTP/hostA@EXAMPLE.COM
+spnego_keytab=/home/bae/dataplatform/kerberos/keytab/spnego.service.keytab
+token_valid=30
+cookie_domain=hostA
+cookie_path=/
+
+admin_principal=rangeradmin/hostA@EXAMPLE.COM
+admin_keytab=/home/bae/dataplatform/kerberos/keytab/rangeradmin.keytab
+lookup_principal=rangerlookup/hostA@EXAMPLE.COM
+lookup_keytab=/home/bae/dataplatform/kerberos/keytab/rangerlookup.keytab
+</code></pre><p>运行./setup.sh（root运行，否则报groupadd没有权限）</p>
 <p>遇到问题：</p>
-<p>a）报错：<br>SQLException : SQL state: 28000 java.sql.SQLException: Access denied for user ‘rangeradmin’@’gzhl-mco-yun-object0561.gzhl.baidu.com’ (using password: YES) ErrorCode: 1045</p>
+<p>a）报错：</p>
+<p>SQLException : SQL state: 28000 java.sql.SQLException: Access denied for user ‘rangeradmin’@’hostA’ (using password: YES) ErrorCode: 1045</p>
 <p>查看user表，该用户已经创建，但是机器没有被授权</p>
-<p>create user ‘rangeradmin’@’gzhl-mco-yun-object0561.gzhl.baidu.com’ identified by ‘123456’;</p>
-<p>flush privileges;</p>
-<p>b）修改了policymgr_external_url=<a href="http://localhost:8070端口，发现8070端口没有启动成功" target="_blank" rel="external">http://localhost:8070端口，发现8070端口没有启动成功</a></p>
+<pre><code>create user &apos;rangeradmin&apos;@&apos;hostA&apos; identified by &apos;123456&apos;;
+flush privileges;
+</code></pre><p>b）修改了policymgr_external_url=<a href="http://localhost:8070端口，发现8070端口没有启动成功" target="_blank" rel="external">http://localhost:8070端口，发现8070端口没有启动成功</a></p>
 <p>在conf/ranger-admin-site.xml中发现</p>
 <pre><code>&lt;property&gt;
 &lt;name&gt;ranger.service.http.port&lt;/name&gt;
@@ -135,16 +153,34 @@
 <p>这个安装的目的是同步unix，或者ldap中的用户到ranger中。</p>
 <p>拷贝编译好的ranger-0.5.4-SNAPSHOT-usersync.tar.gz到适当目录并解压</p>
 <p>修改install.properties:（同步本机的unix用户）</p>
-<p>POLICY_MGR_URL = <a href="http://localhost:8070" target="_blank" rel="external">http://localhost:8070</a></p>
-<h1 id="sync-source-only-unix-and-ldap-are-supported-at-present"><a href="#sync-source-only-unix-and-ldap-are-supported-at-present" class="headerlink" title="sync source,  only unix and ldap are supported at present"></a>sync source,  only unix and ldap are supported at present</h1><h1 id="defaults-to-unix"><a href="#defaults-to-unix" class="headerlink" title="defaults to unix"></a>defaults to unix</h1><p>SYNC_SOURCE = unix</p>
-<p>#User and group for the usersync process<br>unix_user=work<br>unix_group=work<br>logdir=/home/bae/dataplatform/ranger-0.5.4-SNAPSHOT-usersync/logs/ranger/usersync<br>usersync_principal=rangerusersync/gzhl-mco-yun-object0561.gzhl.baidu.com@EXAMPLE.COM<br>usersync_keytab=/home/bae/dataplatform/kerberos/keytab/rangerusersync.keytab<br>hadoop_conf=/home/bae/dataplatform/hadoop/conf/</p>
-<p>使用root账号运行./setup.sh<br>启动usersync:/ranger-usersync-services.sh start<br>验证是否成功：在ranger控制台的settings－&gt;Users/Groups信息看本机的账号是否已经被同步上来。</p>
+<pre><code>POLICY_MGR_URL = http://localhost:8070
+# sync source,  only unix and ldap are supported at present
+# defaults to unix
+SYNC_SOURCE = unix
+#User and group for the usersync process
+unix_user=work
+unix_group=work
+logdir=/home/bae/dataplatform/ranger-0.5.4-SNAPSHOT-usersync/logs/ranger/usersync
+usersync_principal=rangerusersync/hostA@EXAMPLE.COM
+usersync_keytab=/home/bae/dataplatform/kerberos/keytab/rangerusersync.keytab
+hadoop_conf=/home/bae/dataplatform/hadoop/conf/
+</code></pre><p>使用root账号运行./setup.sh<br>启动usersync:/ranger-usersync-services.sh start<br>验证是否成功：在ranger控制台的settings－&gt;Users/Groups信息看本机的账号是否已经被同步上来。</p>
 <p>4.hdfs-plugin安装(只需要在对应集群的主备namenode上安装)</p>
 <p>为了让ranger能够控制hdfs，需要安装plugin</p>
 <p>拷贝ranger-0.5.4-SNAPSHOT-hbase-plugin.tar.gz到对应目录并解压。修改install.properties</p>
-<p>POLICY_MGR_URL=<a href="http://gzhl-mco-yun-object0561.gzhl.baidu.com:8070" target="_blank" rel="external">http://gzhl-mco-yun-object0561.gzhl.baidu.com:8070</a><br>SQL_CONNECTOR_JAR=/home/bae/dataplatform/jumbo/lib/mysql/mysql-connector-java-5.1.41-bin.jar<br>REPOSITORY_NAME=hadoopdev(与后续页面上配置的一致)<br>XAAUDIT.DB.IS_ENABLED=true<br>XAAUDIT.DB.FLAVOUR=MYSQL<br>XAAUDIT.DB.HOSTNAME=gzhl-mco-yun-object0561.gzhl.baidu.com:3309<br>XAAUDIT.DB.DATABASE_NAME=ranger_audit<br>XAAUDIT.DB.USER_NAME=rangeradmin<br>XAAUDIT.DB.PASSWORD=123456</p>
-<p>CUSTOM_USER=work<br>CUSTOM_GROUP=work</p>
-<p>创建到hadoop_conf的软链：<br>ln -s /home/bae/dataplatform/hadoop-2.7.2  /home/bae/dataplatform/hadoop<br>ln -s /home/bae/dataplatform/hadoop-2.7.2/etc/hadoop/ /home/bae/dataplatform/hadoop-2.7.2/conf</p>
+<pre><code>POLICY_MGR_URL=http://hostA:8070
+SQL_CONNECTOR_JAR=/home/bae/dataplatform/jumbo/lib/mysql/mysql-connector-java-5.1.41-bin.jar
+REPOSITORY_NAME=hadoopdev(与后续页面上配置的一致)
+XAAUDIT.DB.IS_ENABLED=true
+XAAUDIT.DB.FLAVOUR=MYSQL
+XAAUDIT.DB.HOSTNAME=hostA:3309
+XAAUDIT.DB.DATABASE_NAME=ranger_audit
+XAAUDIT.DB.USER_NAME=rangeradmin
+XAAUDIT.DB.PASSWORD=123456
+
+CUSTOM_USER=work
+CUSTOM_GROUP=work
+</code></pre><p>创建到hadoop_conf的软链：<br>ln -s /home/bae/dataplatform/hadoop-2.7.2  /home/bae/dataplatform/hadoop<br>ln -s /home/bae/dataplatform/hadoop-2.7.2/etc/hadoop/ /home/bae/dataplatform/hadoop-2.7.2/conf</p>
 <p>确认$HADOOP_HOME下面有lib目录，如果没有需要编译native lib，编译方法：</p>
 <p><a href="http://hadoop.apache.org/docs/r2.7.3/hadoop-project-dist/hadoop-common/NativeLibraries.html" target="_blank" rel="external">http://hadoop.apache.org/docs/r2.7.3/hadoop-project-dist/hadoop-common/NativeLibraries.html</a></p>
 <p>使用root账号启动hdfs-plugin:</p>
@@ -163,12 +199,28 @@ done
 <p>5.在ranger的控制台中增加plugin配置：</p>
 <p>首先创建一个kerberos的用户名密码</p>
 <p>addprinc -pw password rangeradmin@example.com</p>
-<p>修改core-site.xml增加映射：<br>RULE:<a href="rangeradmin@EXAMPLE.COM">2:$1@$0</a>s/.<em>/work/<br>RULE:<a href="rangeradmin@EXAMPLE.COM">1:$1@$0</a>s/.</em>/work/</p>
-<p>重启namenode使其生效，重启ranger-admin</p>
+<p>修改core-site.xml增加映射：</p>
+<pre><code>RULE:[2:$1@$0](rangeradmin@EXAMPLE.COM)s/.*/work/
+RULE:[1:$1@$0](rangeradmin@EXAMPLE.COM)s/.*/work/
+</code></pre><p>重启namenode使其生效，重启ranger-admin</p>
 <p>在Service Manager-&gt;hdfs中增加hadoopdev（名称与hdfs plugin中设置的一致)repo</p>
-<p>username:rangeradmin@example.com<br>password:password<br>namenode url:hdfs://gzhl-mco-yun-object0562.gzhl.baidu.com:8900<br>Authorization Enabled:yes<br>Authentication Type:kerberos<br>hadoop.security.auth_to_local:RULE:<a href="rangeradmin@EXAMPLE.COM">1:$1@$0</a>s/.*/work/<br>dfs.datanode.kerberos.principal:dn/_HOST@EXAMPLE.COM<br>dfs.namenode.kerberos.principal:nn/_HOST@EXAMPLE.COM<br>dfs.secondary.namenode.kerberos.principal:nn/_HOST@EXAMPLE.COM<br>RPC Protection Type:Authentication</p>
-<p>dfs.nameservices = smallfile<br>dfs.ha.namenodes.smallfile= nn1,nn2<br>dfs.namenode.rpc-address.nn1 = gzhl-mco-yun-object0562.gzhl.baidu.com:8900<br>dfs.namenode.rpc-address.nn2 = gzhl-mco-yun-object0563.gzhl.baidu.com:8900<br>dfs.client.failover.proxy.provider.smallfile = org.apache.hadoop.hdfs.server.namenode.ha.ConfiguredFailoverProxyProvider</p>
-<p>其中username/password需要是kerberos中有效的用户名密码。</p>
+<pre><code>username:rangeradmin@example.com
+password:password
+namenode url:hdfs://hostB:8900
+Authorization Enabled:yes
+Authentication Type:kerberos
+hadoop.security.auth_to_local:RULE:[1:$1@$0](rangeradmin@EXAMPLE.COM)s/.*/work/
+dfs.datanode.kerberos.principal:dn/_HOST@EXAMPLE.COM
+dfs.namenode.kerberos.principal:nn/_HOST@EXAMPLE.COM
+dfs.secondary.namenode.kerberos.principal:nn/_HOST@EXAMPLE.COM
+RPC Protection Type:Authentication
+
+dfs.nameservices = smallfile
+dfs.ha.namenodes.smallfile= nn1,nn2
+dfs.namenode.rpc-address.nn1 = hostB:8900
+dfs.namenode.rpc-address.nn2 = hostC:8900
+dfs.client.failover.proxy.provider.smallfile = org.apache.hadoop.hdfs.server.namenode.ha.ConfiguredFailoverProxyProvider
+</code></pre><p>其中username/password需要是kerberos中有效的用户名密码。</p>
 <p>点击test connection如果成功，那么save.</p>
 <p>验证plugin是否添加成功：在audit-&gt;plugin目录下是否出现对应的plugin信息。</p>
 <p>6.ranger对hdfs授权测试</p>
@@ -183,7 +235,7 @@ done
       
     </div>
     <footer class="article-footer">
-      <a data-url="http://yoursite.com/2017/04/13/在kerberos-HA环境下的ranger编译安装/" data-id="cj1fu9rdn0000xz3c6kxwj4f7" class="article-share-link">Share</a>
+      <a data-url="http://yoursite.com/2017/04/13/在kerberos-HA环境下的ranger编译安装/" data-id="cj1fv0nzi00003i3cr6z7qosz" class="article-share-link">Share</a>
       
       
     </footer>
@@ -236,7 +288,7 @@ done
       <ul>
         
           <li>
-            <a href="/2017/04/13/在kerberos-HA环境下的ranger编译安装/">在kerberos+HA环境下的ranger编译安装</a>
+            <a href="/2017/04/13/在kerberos-HA环境下的ranger编译安装/">(no title)</a>
           </li>
         
           <li>
