@@ -64,7 +64,7 @@
     <article id="post-spark-on-yarn情况下historyserver的配置" class="article article-type-post" itemscope itemprop="blogPost">
   <div class="article-meta">
     <a href="/2017/04/19/spark-on-yarn情况下historyserver的配置/" class="article-date">
-  <time datetime="2017-04-19T09:36:00.000Z" itemprop="datePublished">2017-04-19</time>
+  <time datetime="2017-04-19T09:39:44.000Z" itemprop="datePublished">2017-04-19</time>
 </a>
     
   <div class="article-category">
@@ -92,6 +92,7 @@
       
         <p>标签（空格分隔）： 未分类</p>
 <hr>
+<p>我们经常需要在一个app执行完成之后，去对这个app的执行情况进行分析，不管是分析它如何失败也好，或者是分析这个任务执行过程是否需要优化。那么这时候我们就需要用到historyserver.</p>
 <p>首先log分为两种：1)标准输入输出的log 2）spark event log<br>对应yarn页面上的两个按钮：1)logs   2)history</p>
 <p>###logs配置<br>对于yarn来说，logs这块需要配置：(所有nodemanager的机器上都需要修改该配置)</p>
 <pre><code>&lt;property&gt;
@@ -142,7 +143,7 @@ spark.executor.extraJavaOptions  -XX:+PrintGCDetails -XX:+PrintGCTimeStamps
       
     </div>
     <footer class="article-footer">
-      <a data-url="http://yoursite.com/2017/04/19/spark-on-yarn情况下historyserver的配置/" data-id="cj1os9w5s0000sk3cuv10yymr" class="article-share-link">Share</a>
+      <a data-url="http://yoursite.com/2017/04/19/spark-on-yarn情况下historyserver的配置/" data-id="cj1oseked0000tz3cmdzsnad5" class="article-share-link">Share</a>
       
       
     </footer>
@@ -479,7 +480,7 @@ spark.sql.parquet.compression.codec=snappy
       
     </div>
     <footer class="article-footer">
-      <a data-url="http://yoursite.com/2017/04/13/spark中parquet文件写入优化/" data-id="cj1os9w610001sk3clb3yl16x" class="article-share-link">Share</a>
+      <a data-url="http://yoursite.com/2017/04/13/spark中parquet文件写入优化/" data-id="cj1osekeo0001tz3cdw8f39fy" class="article-share-link">Share</a>
       
       
     </footer>
@@ -677,7 +678,7 @@ dfs.client.failover.proxy.provider.smallfile = org.apache.hadoop.hdfs.server.nam
       
     </div>
     <footer class="article-footer">
-      <a data-url="http://yoursite.com/2017/04/13/在kerberos-HA环境下的ranger编译安装/" data-id="cj1os9w6a0003sk3cb9tpoxvc" class="article-share-link">Share</a>
+      <a data-url="http://yoursite.com/2017/04/13/在kerberos-HA环境下的ranger编译安装/" data-id="cj1osekex0003tz3c7y5inld5" class="article-share-link">Share</a>
       
       
     </footer>

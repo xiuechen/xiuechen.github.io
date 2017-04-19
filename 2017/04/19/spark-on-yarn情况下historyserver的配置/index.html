@@ -5,17 +5,17 @@
   
   <title>原创-spark-on-yarn情况下historyserver的配置 | Nora-一个程序媛的窝</title>
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
-  <meta name="description" content="标签（空格分隔）： 未分类  首先log分为两种：1)标准输入输出的log 2）spark event log对应yarn页面上的两个按钮：1)logs   2)history ###logs配置对于yarn来说，logs这块需要配置：(所有nodemanager的机器上都需要修改该配置) &amp;lt;property&amp;gt;   &amp;lt;name&amp;gt;yarn.log-aggregation-en">
+  <meta name="description" content="标签（空格分隔）： 未分类  我们经常需要在一个app执行完成之后，去对这个app的执行情况进行分析，不管是分析它如何失败也好，或者是分析这个任务执行过程是否需要优化。那么这时候我们就需要用到historyserver. 首先log分为两种：1)标准输入输出的log 2）spark event log对应yarn页面上的两个按钮：1)logs   2)history ###logs配置对于yarn">
 <meta name="keywords">
 <meta property="og:type" content="article">
 <meta property="og:title" content="原创-spark-on-yarn情况下historyserver的配置">
 <meta property="og:url" content="http://yoursite.com/2017/04/19/spark-on-yarn情况下historyserver的配置/index.html">
 <meta property="og:site_name" content="Nora-一个程序媛的窝">
-<meta property="og:description" content="标签（空格分隔）： 未分类  首先log分为两种：1)标准输入输出的log 2）spark event log对应yarn页面上的两个按钮：1)logs   2)history ###logs配置对于yarn来说，logs这块需要配置：(所有nodemanager的机器上都需要修改该配置) &amp;lt;property&amp;gt;   &amp;lt;name&amp;gt;yarn.log-aggregation-en">
-<meta property="og:updated_time" content="2017-04-19T09:36:00.000Z">
+<meta property="og:description" content="标签（空格分隔）： 未分类  我们经常需要在一个app执行完成之后，去对这个app的执行情况进行分析，不管是分析它如何失败也好，或者是分析这个任务执行过程是否需要优化。那么这时候我们就需要用到historyserver. 首先log分为两种：1)标准输入输出的log 2）spark event log对应yarn页面上的两个按钮：1)logs   2)history ###logs配置对于yarn">
+<meta property="og:updated_time" content="2017-04-19T09:39:44.000Z">
 <meta name="twitter:card" content="summary">
 <meta name="twitter:title" content="原创-spark-on-yarn情况下historyserver的配置">
-<meta name="twitter:description" content="标签（空格分隔）： 未分类  首先log分为两种：1)标准输入输出的log 2）spark event log对应yarn页面上的两个按钮：1)logs   2)history ###logs配置对于yarn来说，logs这块需要配置：(所有nodemanager的机器上都需要修改该配置) &amp;lt;property&amp;gt;   &amp;lt;name&amp;gt;yarn.log-aggregation-en">
+<meta name="twitter:description" content="标签（空格分隔）： 未分类  我们经常需要在一个app执行完成之后，去对这个app的执行情况进行分析，不管是分析它如何失败也好，或者是分析这个任务执行过程是否需要优化。那么这时候我们就需要用到historyserver. 首先log分为两种：1)标准输入输出的log 2）spark event log对应yarn页面上的两个按钮：1)logs   2)history ###logs配置对于yarn">
   
     <link rel="alternate" href="/atom.xml" title="Nora-一个程序媛的窝" type="application/atom+xml">
   
@@ -67,7 +67,7 @@
         <section id="main"><article id="post-spark-on-yarn情况下historyserver的配置" class="article article-type-post" itemscope itemprop="blogPost">
   <div class="article-meta">
     <a href="/2017/04/19/spark-on-yarn情况下historyserver的配置/" class="article-date">
-  <time datetime="2017-04-19T09:36:00.000Z" itemprop="datePublished">2017-04-19</time>
+  <time datetime="2017-04-19T09:39:44.000Z" itemprop="datePublished">2017-04-19</time>
 </a>
     
   <div class="article-category">
@@ -95,6 +95,7 @@
       
         <p>标签（空格分隔）： 未分类</p>
 <hr>
+<p>我们经常需要在一个app执行完成之后，去对这个app的执行情况进行分析，不管是分析它如何失败也好，或者是分析这个任务执行过程是否需要优化。那么这时候我们就需要用到historyserver.</p>
 <p>首先log分为两种：1)标准输入输出的log 2）spark event log<br>对应yarn页面上的两个按钮：1)logs   2)history</p>
 <p>###logs配置<br>对于yarn来说，logs这块需要配置：(所有nodemanager的机器上都需要修改该配置)</p>
 <pre><code>&lt;property&gt;
@@ -145,7 +146,7 @@ spark.executor.extraJavaOptions  -XX:+PrintGCDetails -XX:+PrintGCTimeStamps
       
     </div>
     <footer class="article-footer">
-      <a data-url="http://yoursite.com/2017/04/19/spark-on-yarn情况下historyserver的配置/" data-id="cj1os9w5s0000sk3cuv10yymr" class="article-share-link">Share</a>
+      <a data-url="http://yoursite.com/2017/04/19/spark-on-yarn情况下historyserver的配置/" data-id="cj1oseked0000tz3cmdzsnad5" class="article-share-link">Share</a>
       
       
     </footer>
