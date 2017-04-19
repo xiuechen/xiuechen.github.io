@@ -50,7 +50,7 @@
         
           <a id="nav-rss-link" class="nav-icon" href="/atom.xml" title="RSS Feed"></a>
         
-        <a id="nav-search-btn" class="nav-icon" title="Søk"></a>
+        <a id="nav-search-btn" class="nav-icon" title="Search"></a>
       </nav>
       <div id="search-form-wrap">
         <form action="//google.com/search" method="get" accept-charset="UTF-8" class="search-form"><input type="search" name="q" class="search-form-input" placeholder="Search"><button type="submit" class="search-form-submit">&#xF002;</button><input type="hidden" name="sitesearch" value="http://yoursite.com"></form>
@@ -60,6 +60,98 @@
 </header>
       <div class="outer">
         <section id="main">
+  
+    <article id="post-spark-on-yarn情况下historyserver的配置" class="article article-type-post" itemscope itemprop="blogPost">
+  <div class="article-meta">
+    <a href="/2017/04/19/spark-on-yarn情况下historyserver的配置/" class="article-date">
+  <time datetime="2017-04-19T09:36:00.000Z" itemprop="datePublished">2017-04-19</time>
+</a>
+    
+  <div class="article-category">
+    <a class="article-category-link" href="/categories/部署文档/">部署文档</a>
+  </div>
+
+  </div>
+  <div class="article-inner">
+    
+    
+      <header class="article-header">
+        
+  
+    <h1 itemprop="name">
+      <a class="article-title" href="/2017/04/19/spark-on-yarn情况下historyserver的配置/">原创-spark-on-yarn情况下historyserver的配置</a>
+    </h1>
+  
+
+      </header>
+    
+    <div class="article-entry" itemprop="articleBody">
+      <span id="busuanzi_container_page_pv">
+        <br /><br /> 阅读次数<span id="busuanzi_value_page_pv"></span>
+        </span>
+      
+        <p>标签（空格分隔）： 未分类</p>
+<hr>
+<p>首先log分为两种：1)标准输入输出的log 2）spark event log<br>对应yarn页面上的两个按钮：1)logs   2)history</p>
+<p>###logs配置<br>对于yarn来说，logs这块需要配置：(所有nodemanager的机器上都需要修改该配置)</p>
+<pre><code>&lt;property&gt;
+  &lt;name&gt;yarn.log-aggregation-enable&lt;/name&gt;
+  &lt;value&gt;true&lt;/value&gt;
+  &lt;/property&gt;
+
+  &lt;property&gt; 
+  &lt;name&gt;yarn.log-aggregation.retain-seconds&lt;/name&gt;
+  &lt;value&gt;259200&lt;/value&gt;
+  &lt;/property&gt;
+
+  &lt;property&gt;
+    &lt;name&gt;yarn.log.server.url&lt;/name&gt;
+    &lt;value&gt;http://hostA:8937/jobhistory/logs/&lt;/value&gt;（yarn会在用户点击历史任务logs的时候跳转到这个url,这个url提供的jobhistory server是mapreduce的功能）
+  &lt;/property&gt;
+
+ &lt;property&gt; 
+  &lt;name&gt;yarn.nodemanager.remote-app-log-dir&lt;/name&gt;
+  &lt;value&gt;/tmp/logs/yarn/&lt;/value&gt;(yarn会负责任务结束后将地址转存到这个位置)
+  &lt;/property&gt;
+</code></pre><p>在hostA上修改mapred-site.xml配置：<br>对于mapred-site.xml来说需要配置：(./sbin/mr-jobhistory-daemon.sh start historyserver)</p>
+<pre><code>&lt;property&gt;
+&lt;name&gt;mapreduce.jobhistory.address&lt;/name&gt;
+&lt;value&gt;hostA:8927&lt;/value&gt;
+&lt;/property&gt;
+
+&lt;property&gt;
+&lt;name&gt;mapreduce.jobhistory.webapp.address&lt;/name&gt;
+&lt;value&gt;hostB:8937&lt;/value&gt;
+&lt;/property&gt;
+</code></pre><p>(historyserver挂掉，检查相关的几个目录是不是满了)</p>
+<p>在hostA上执行$HADOOP_HOME/sbin/mr-jobhistory-daemon.sh start historyserver启动historyserver。</p>
+<p>这个步骤完成后在yarn页面上点击app的logs按钮就可以看到该app的日志，不管这个app执行完成与否。</p>
+<p>###event log配置<br>对于history来说。yarn会负责跳转到app自身指定的history server当中去。(在hostB机器上$SPARK_HOME/sbin/start-history-server.sh启动historyserver)</p>
+<pre><code>spark.eventLog.enabled           true
+spark.eventLog.dir  hdfs://hostNamenode:8900/spark-event-2.0
+spark.yarn.historyServer.address hostB:8651
+spark.history.fs.logDirectory hdfs://hostNamenode:8900/spark-event-2.0
+spark.history.retainedApplications 1000
+spark.history.ui.port 8651
+spark.history.fs.cleaner.enabled true
+spark.history.fs.cleaner.interval 1d
+spark.history.fs.cleaner.maxAge 3d
+spark.executor.extraJavaOptions  -XX:+PrintGCDetails -XX:+PrintGCTimeStamps
+</code></pre><p>这个完成后，就可以通过history按钮看到spark event log，不管该app执行完成与否。</p>
+
+      
+    </div>
+    <footer class="article-footer">
+      <a data-url="http://yoursite.com/2017/04/19/spark-on-yarn情况下historyserver的配置/" data-id="cj1os9w5s0000sk3cuv10yymr" class="article-share-link">Share</a>
+      
+      
+    </footer>
+  </div>
+  
+</article>
+
+
+
   
     <article id="post-spark中parquet文件写入优化" class="article article-type-post" itemscope itemprop="blogPost">
   <div class="article-meta">
@@ -387,7 +479,7 @@ spark.sql.parquet.compression.codec=snappy
       
     </div>
     <footer class="article-footer">
-      <a data-url="http://yoursite.com/2017/04/13/spark中parquet文件写入优化/" data-id="cj1g75m3w0000kq3c9mwj74cm" class="article-share-link">Share</a>
+      <a data-url="http://yoursite.com/2017/04/13/spark中parquet文件写入优化/" data-id="cj1os9w610001sk3clb3yl16x" class="article-share-link">Share</a>
       
       
     </footer>
@@ -585,7 +677,7 @@ dfs.client.failover.proxy.provider.smallfile = org.apache.hadoop.hdfs.server.nam
       
     </div>
     <footer class="article-footer">
-      <a data-url="http://yoursite.com/2017/04/13/在kerberos-HA环境下的ranger编译安装/" data-id="cj1g75m440001kq3cdd1oxcgr" class="article-share-link">Share</a>
+      <a data-url="http://yoursite.com/2017/04/13/在kerberos-HA环境下的ranger编译安装/" data-id="cj1os9w6a0003sk3cb9tpoxvc" class="article-share-link">Share</a>
       
       
     </footer>
@@ -603,7 +695,7 @@ dfs.client.failover.proxy.provider.smallfile = org.apache.hadoop.hdfs.server.nam
   
     
   <div class="widget-wrap">
-    <h3 class="widget-title">Kategorier</h3>
+    <h3 class="widget-title">Categories</h3>
     <div class="widget">
       <ul class="category-list"><li class="category-list-item"><a class="category-list-link" href="/categories/性能优化/">性能优化</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/部署文档/">部署文档</a></li></ul>
     </div>
@@ -618,7 +710,7 @@ dfs.client.failover.proxy.provider.smallfile = org.apache.hadoop.hdfs.server.nam
   
     
   <div class="widget-wrap">
-    <h3 class="widget-title">Arkiv</h3>
+    <h3 class="widget-title">Archives</h3>
     <div class="widget">
       <ul class="archive-list"><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/04/">April 2017</a></li></ul>
     </div>
@@ -628,9 +720,13 @@ dfs.client.failover.proxy.provider.smallfile = org.apache.hadoop.hdfs.server.nam
   
     
   <div class="widget-wrap">
-    <h3 class="widget-title">Siste innlegg</h3>
+    <h3 class="widget-title">Recent Posts</h3>
     <div class="widget">
       <ul>
+        
+          <li>
+            <a href="/2017/04/19/spark-on-yarn情况下historyserver的配置/">原创-spark-on-yarn情况下historyserver的配置</a>
+          </li>
         
           <li>
             <a href="/2017/04/13/spark中parquet文件写入优化/">原创-spark中parquet文件写入优化</a>
