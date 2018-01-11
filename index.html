@@ -48,9 +48,9 @@
       </nav>
       <nav id="sub-nav">
         
-          <a id="nav-rss-link" class="nav-icon" href="/atom.xml" title="RSS Feed"></a>
+          <a id="nav-rss-link" class="nav-icon" href="/atom.xml" title="Flux RSS"></a>
         
-        <a id="nav-search-btn" class="nav-icon" title="Search"></a>
+        <a id="nav-search-btn" class="nav-icon" title="Rechercher"></a>
       </nav>
       <div id="search-form-wrap">
         <form action="//google.com/search" method="get" accept-charset="UTF-8" class="search-form"><input type="search" name="q" class="search-form-input" placeholder="Search"><button type="submit" class="search-form-submit">&#xF002;</button><input type="hidden" name="sitesearch" value="http://yoursite.com"></form>
@@ -60,6 +60,247 @@
 </header>
       <div class="outer">
         <section id="main">
+  
+    <article id="post-原创－flume写hdfs性能优化" class="article article-type-post" itemscope itemprop="blogPost">
+  <div class="article-meta">
+    <a href="/2018/01/11/原创－flume写hdfs性能优化/" class="article-date">
+  <time datetime="2018-01-11T03:43:57.000Z" itemprop="datePublished">2018-01-11</time>
+</a>
+    
+  <div class="article-category">
+    <a class="article-category-link" href="/categories/性能优化/">性能优化</a>
+  </div>
+
+  </div>
+  <div class="article-inner">
+    
+    
+      <header class="article-header">
+        
+  
+    <h1 itemprop="name">
+      <a class="article-title" href="/2018/01/11/原创－flume写hdfs性能优化/">原创-flume写hdfs性能优化</a>
+    </h1>
+  
+
+      </header>
+    
+    <div class="article-entry" itemprop="articleBody">
+      <span id="busuanzi_container_page_pv">
+        <br /><br /> 阅读次数<span id="busuanzi_value_page_pv"></span>
+        </span>
+      
+        <p>标签（空格分隔）： 未分类</p>
+<hr>
+<p>flume在写hdfs的时候，每接收到一个event就会调用bucketwriter.java的append(event)方法，在append当中每次都会去检查shouldrotate,我们来看一下这块的逻辑：</p>
+<pre><code>private boolean shouldRotate() {
+    boolean doRotate = false;
+
+    if (writer.isUnderReplicated()) {
+      this.isUnderReplicated = true;
+      doRotate = true;
+    } else {
+      this.isUnderReplicated = false;
+    }
+
+    if ((rollCount &gt; 0) &amp;&amp; (rollCount &lt;= eventCounter)) {
+      LOG.debug(&quot;rolling: rollCount: {}, events: {}&quot;, rollCount, eventCounter);
+      doRotate = true;
+    }
+
+    if ((rollSize &gt; 0) &amp;&amp; (rollSize &lt;= processSize)) {
+      LOG.debug(&quot;rolling: rollSize: {}, bytes: {}&quot;, rollSize, processSize);
+      doRotate = true;
+    }
+
+    return doRotate;
+  }
+</code></pre><p>我们可以看到这里每次都会调用writer.isUnderReplicated()，如果副本数低于预期，那么不管有没有达到rollcount或者rollsize就rotate？？（这块可能是说上一个event如果副本数没有达到预期，那么就需要重新开一个新文件去写入，为啥要这样设计？不太清楚。。。）</p>
+<pre><code>public boolean isUnderReplicated() {
+    try {
+      int numBlocks = getNumCurrentReplicas();
+      if (numBlocks == -1) {
+        return false;
+      }
+      int desiredBlocks;
+      if (configuredMinReplicas != null) {
+        desiredBlocks = configuredMinReplicas;
+      } else {
+        desiredBlocks = getFsDesiredReplication();
+      }
+      return numBlocks &lt; desiredBlocks;
+    } catch (IllegalAccessException e) {
+      logger.error(&quot;Unexpected error while checking replication factor&quot;, e);
+    } catch (InvocationTargetException e) {
+      logger.error(&quot;Unexpected error while checking replication factor&quot;, e);
+    } catch (IllegalArgumentException e) {
+      logger.error(&quot;Unexpected error while checking replication factor&quot;, e);
+    }
+    return false;
+  }
+</code></pre><p>副本获取的代码如下：</p>
+<pre><code>/**
+   * This method gets the datanode replication count for the current open file.
+   *
+   * If the pipeline isn&apos;t started yet or is empty, you will get the default
+   * replication factor.
+   *
+   * &lt;p/&gt;If this function returns -1, it means you
+   * are not properly running with the HDFS-826 patch.
+   * @throws InvocationTargetException
+   * @throws IllegalAccessException
+   * @throws IllegalArgumentException
+   */
+  public int getNumCurrentReplicas()
+      throws IllegalArgumentException, IllegalAccessException,
+          InvocationTargetException {
+    if (refGetNumCurrentReplicas != null &amp;&amp; outputStream != null) {
+      OutputStream dfsOutputStream = outputStream.getWrappedStream();
+      if (dfsOutputStream != null) {
+        Object repl = refGetNumCurrentReplicas.invoke(dfsOutputStream, NO_ARGS);
+        if (repl instanceof Integer) {
+          return ((Integer)repl).intValue();
+        }
+      }
+    }
+    return -1;
+  }
+</code></pre><p>我们可以看到每一次event写入都要去和hdfs交互一次，这个代价非常高。而实际上在我们的工作当中我们并没有用rollcount和rollsize，而是使用了rollinterval，rollinterval的逻辑并不在这里,在open()里面有这么一段逻辑：</p>
+<pre><code>if (rollInterval &gt; 0) {
+      Callable&lt;Void&gt; action = new Callable&lt;Void&gt;() {
+        public Void call() throws Exception {
+          LOG.debug(&quot;Rolling file ({}): Roll scheduled after {} sec elapsed.&quot;,
+              bucketPath, rollInterval);
+          try {
+            // Roll the file and remove reference from sfWriters map.
+            close(true);
+          } catch(Throwable t) {
+            LOG.error(&quot;Unexpected error&quot;, t);
+          }
+          return null;
+        }
+      };
+      timedRollFuture = timedRollerPool.schedule(action, rollInterval,TimeUnit.SECONDS);
+</code></pre><p>我们回过头来看一下hdfseventsink类的process方法：</p>
+<pre><code>public Status process() throws EventDeliveryException {
+    Channel channel = getChannel();
+    Transaction transaction = channel.getTransaction();
+    List&lt;BucketWriter&gt; writers = Lists.newArrayList();
+    transaction.begin();
+    try {
+      int txnEventCount = 0;
+      for (txnEventCount = 0; txnEventCount &lt; batchSize; txnEventCount++) {
+        Event event = channel.take();
+        if (event == null) {
+          break;
+        }
+
+        // reconstruct the path name by substituting place holders
+        String realPath = BucketPath.escapeString(filePath, event.getHeaders(),
+            timeZone, needRounding, roundUnit, roundValue, useLocalTime);
+        String realName = BucketPath.escapeString(fileName, event.getHeaders(),
+          timeZone, needRounding, roundUnit, roundValue, useLocalTime);
+
+        String lookupPath = realPath + DIRECTORY_DELIMITER + realName;
+        BucketWriter bucketWriter;
+        HDFSWriter hdfsWriter = null;
+        // Callback to remove the reference to the bucket writer from the
+        // sfWriters map so that all buffers used by the HDFS file
+        // handles are garbage collected.
+        WriterCallback closeCallback = new WriterCallback() {
+          @Override
+          public void run(String bucketPath) {
+            LOG.info(&quot;Writer callback called.&quot;);
+            synchronized (sfWritersLock) {
+              sfWriters.remove(bucketPath);
+            }
+          }
+        };
+        synchronized (sfWritersLock) {
+          bucketWriter = sfWriters.get(lookupPath);
+          // we haven&apos;t seen this file yet, so open it and cache the handle
+          if (bucketWriter == null) {
+            hdfsWriter = writerFactory.getWriter(fileType);
+            bucketWriter = initializeBucketWriter(realPath, realName,
+              lookupPath, hdfsWriter, closeCallback);
+            sfWriters.put(lookupPath, bucketWriter);
+          }
+        }
+
+        // track the buckets getting written in this transaction
+        if (!writers.contains(bucketWriter)) {
+          writers.add(bucketWriter);
+        }
+
+        // Write the data to HDFS
+        try {
+          bucketWriter.append(event);
+        } catch (BucketClosedException ex) {
+          LOG.info(&quot;Bucket was closed while trying to append, &quot; +
+            &quot;reinitializing bucket and writing event.&quot;);
+          hdfsWriter = writerFactory.getWriter(fileType);
+          bucketWriter = initializeBucketWriter(realPath, realName,
+            lookupPath, hdfsWriter, closeCallback);
+          synchronized (sfWritersLock) {
+            sfWriters.put(lookupPath, bucketWriter);
+          }
+          bucketWriter.append(event);
+        }
+      }
+
+      if (txnEventCount == 0) {
+        sinkCounter.incrementBatchEmptyCount();
+      } else if (txnEventCount == batchSize) {
+        sinkCounter.incrementBatchCompleteCount();
+      } else {
+        sinkCounter.incrementBatchUnderflowCount();
+      }
+
+      // flush all pending buckets before committing the transaction
+      for (BucketWriter bucketWriter : writers) {
+        bucketWriter.flush();
+      }
+
+      transaction.commit();
+
+      if (txnEventCount &lt; 1) {
+        return Status.BACKOFF;
+      } else {
+        sinkCounter.addToEventDrainSuccessCount(txnEventCount);
+        return Status.READY;
+      }
+    } catch (IOException eIO) {
+      transaction.rollback();
+      LOG.warn(&quot;HDFS IO error&quot;, eIO);
+      return Status.BACKOFF;
+    } catch (Throwable th) {
+      transaction.rollback();
+      LOG.error(&quot;process failed&quot;, th);
+      if (th instanceof Error) {
+        throw (Error) th;
+      } else {
+        throw new EventDeliveryException(th);
+      }
+    } finally {
+      transaction.close();
+    }
+  }
+</code></pre><p>hdfseventsink当中维护了map<lookuppath,bucketwriter>的sfwrites哈希表，每次event来的时候，会去sfwriters当中寻找对应path(根据hdfs.path以及hdfs.fileprefix来决定)的bucketwriter作为当前写入的handle.如果找不到，就创建一个，并且将新的句炳加入到sfwriters当中去。因此实际上对于上述bucketwriter中的rotate来说，只是针对同一个路径内部的，如果没有一个路径内rollsize和rollcount滚动的需求，以及数据一定要多副本写入的需求，完全可以把bucketwriter内部判断rotate的逻辑注释掉，这样能够大大提升flume写入能力.</lookuppath,bucketwriter></p>
+<p>agent.sinks.sk_cloudui.hdfs.path = hdfs://bigfile/om/anticrack/cloudui.log/%Y%m%d/%k%M/<br>agent.sinks.sk_cloudui.hdfs.filePrefix = qd01-pcsdata45.qd01.baidu.com</p>
+
+      
+    </div>
+    <footer class="article-footer">
+      <a data-url="http://yoursite.com/2018/01/11/原创－flume写hdfs性能优化/" data-id="cjc9y9liw0001043c9onifz0v" class="article-share-link">Partager</a>
+      
+      
+    </footer>
+  </div>
+  
+</article>
+
+
+
   
     <article id="post-spark-on-yarn情况下historyserver的配置" class="article article-type-post" itemscope itemprop="blogPost">
   <div class="article-meta">
@@ -143,7 +384,7 @@ spark.executor.extraJavaOptions  -XX:+PrintGCDetails -XX:+PrintGCTimeStamps
       
     </div>
     <footer class="article-footer">
-      <a data-url="http://yoursite.com/2017/04/19/spark-on-yarn情况下historyserver的配置/" data-id="cj1oseked0000tz3cmdzsnad5" class="article-share-link">Share</a>
+      <a data-url="http://yoursite.com/2017/04/19/spark-on-yarn情况下historyserver的配置/" data-id="cjc9y9lim0000043cd8h2evox" class="article-share-link">Partager</a>
       
       
     </footer>
@@ -480,7 +721,7 @@ spark.sql.parquet.compression.codec=snappy
       
     </div>
     <footer class="article-footer">
-      <a data-url="http://yoursite.com/2017/04/13/spark中parquet文件写入优化/" data-id="cj1osekeo0001tz3cdw8f39fy" class="article-share-link">Share</a>
+      <a data-url="http://yoursite.com/2017/04/13/spark中parquet文件写入优化/" data-id="cjc9y9lj60003043c4ls02nk6" class="article-share-link">Partager</a>
       
       
     </footer>
@@ -678,7 +919,7 @@ dfs.client.failover.proxy.provider.smallfile = org.apache.hadoop.hdfs.server.nam
       
     </div>
     <footer class="article-footer">
-      <a data-url="http://yoursite.com/2017/04/13/在kerberos-HA环境下的ranger编译安装/" data-id="cj1osekex0003tz3c7y5inld5" class="article-share-link">Share</a>
+      <a data-url="http://yoursite.com/2017/04/13/在kerberos-HA环境下的ranger编译安装/" data-id="cjc9y9lj80004043ccov05fka" class="article-share-link">Partager</a>
       
       
     </footer>
@@ -696,7 +937,7 @@ dfs.client.failover.proxy.provider.smallfile = org.apache.hadoop.hdfs.server.nam
   
     
   <div class="widget-wrap">
-    <h3 class="widget-title">Categories</h3>
+    <h3 class="widget-title">Catégories</h3>
     <div class="widget">
       <ul class="category-list"><li class="category-list-item"><a class="category-list-link" href="/categories/性能优化/">性能优化</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/部署文档/">部署文档</a></li></ul>
     </div>
@@ -713,7 +954,7 @@ dfs.client.failover.proxy.provider.smallfile = org.apache.hadoop.hdfs.server.nam
   <div class="widget-wrap">
     <h3 class="widget-title">Archives</h3>
     <div class="widget">
-      <ul class="archive-list"><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/04/">April 2017</a></li></ul>
+      <ul class="archive-list"><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/01/">January 2018</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/04/">April 2017</a></li></ul>
     </div>
   </div>
 
@@ -721,9 +962,13 @@ dfs.client.failover.proxy.provider.smallfile = org.apache.hadoop.hdfs.server.nam
   
     
   <div class="widget-wrap">
-    <h3 class="widget-title">Recent Posts</h3>
+    <h3 class="widget-title">Articles récents</h3>
     <div class="widget">
       <ul>
+        
+          <li>
+            <a href="/2018/01/11/原创－flume写hdfs性能优化/">原创-flume写hdfs性能优化</a>
+          </li>
         
           <li>
             <a href="/2017/04/19/spark-on-yarn情况下historyserver的配置/">原创-spark-on-yarn情况下historyserver的配置</a>
@@ -749,8 +994,8 @@ dfs.client.failover.proxy.provider.smallfile = org.apache.hadoop.hdfs.server.nam
   
   <div class="outer">
     <div id="footer-info" class="inner">
-      &copy; 2017 XiueChen<br>
-      Powered by <a href="http://hexo.io/" target="_blank">Hexo</a>
+      &copy; 2018 XiueChen<br>
+      Propulsé by <a href="http://hexo.io/" target="_blank">Hexo</a>
       <script async src="//dn-lbstatics.qbox.me/busuanzi/2.3/busuanzi.pure.mini.js"></script>
       <span id="busuanzi_container_site_uv"><br />本站访客数<span id="busuanzi_value_site_uv"></span>人次
       <span id="busuanzi_container_site_pv"><br />本站访问次数<span id="busuanzi_value_site_pv"></span>
