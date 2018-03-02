@@ -5,14 +5,17 @@
   
   <title>spark远程调试 | Nora-一个程序媛的窝</title>
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
-  <meta name="keywords">
+  <meta name="description" content="##spark远程调试 深入了解spark少不了改变代码进行调试，因此编译调试是必备技能： ###首先说一下编译： 完整编译： ./build/mvn -Pyarn -Phadoop-2.7 -Phive -Phive-thriftserver -Dhadoop.version=2.7.3 -DskipTests clean package 增量编译： ./build/mvn -Pyarn -Ph">
+<meta name="keywords">
 <meta property="og:type" content="article">
 <meta property="og:title" content="spark远程调试">
 <meta property="og:url" content="http://yoursite.com/2018/03/02/spark远程调试/index.html">
 <meta property="og:site_name" content="Nora-一个程序媛的窝">
-<meta property="og:updated_time" content="2018-03-02T07:12:34.000Z">
+<meta property="og:description" content="##spark远程调试 深入了解spark少不了改变代码进行调试，因此编译调试是必备技能： ###首先说一下编译： 完整编译： ./build/mvn -Pyarn -Phadoop-2.7 -Phive -Phive-thriftserver -Dhadoop.version=2.7.3 -DskipTests clean package 增量编译： ./build/mvn -Pyarn -Ph">
+<meta property="og:updated_time" content="2018-03-02T07:29:05.000Z">
 <meta name="twitter:card" content="summary">
 <meta name="twitter:title" content="spark远程调试">
+<meta name="twitter:description" content="##spark远程调试 深入了解spark少不了改变代码进行调试，因此编译调试是必备技能： ###首先说一下编译： 完整编译： ./build/mvn -Pyarn -Phadoop-2.7 -Phive -Phive-thriftserver -Dhadoop.version=2.7.3 -DskipTests clean package 增量编译： ./build/mvn -Pyarn -Ph">
   
     <link rel="alternate" href="/atom.xml" title="Nora-一个程序媛的窝" type="application/atom+xml">
   
@@ -86,11 +89,30 @@
         <br /><br /> 阅读次数<span id="busuanzi_value_page_pv"></span>
         </span>
       
-        
+        <p>##spark远程调试</p>
+<p>深入了解spark少不了改变代码进行调试，因此编译调试是必备技能：</p>
+<p>###首先说一下编译：</p>
+<p>完整编译：</p>
+<pre><code>./build/mvn -Pyarn -Phadoop-2.7 -Phive -Phive-thriftserver -Dhadoop.version=2.7.3 -DskipTests clean package
+</code></pre><p>增量编译：</p>
+<pre><code>./build/mvn -Pyarn -Phadoop-2.7 -Phive -Phive-thriftserver ~package
+export SPARK_PREPEND_CLASSES=1
+</code></pre><p>###idea远程调试</p>
+<p>先决条件：拥有一个在idea能够完整编译通过的spark项目</p>
+<p>####1.在idea中run-&gt;edit configurations设置remote-&gt;remotedebug参数</p>
+<p>其中debugger mode选择attach，然后设置要链接的host以及port（也就是spark进程启动的机器以及监听端口）</p>
+<p>####2.在远程host上启动spark程序，设置jvm参数</p>
+<p>–driver-java-options  “ -Xdebug -Xrunjdwp:transport=dt_socket,server=y,suspend=n,address=8888”</p>
+<p>比如一个提交到yarn集群的例子：</p>
+<p>/home/work/dataplatform/spark-2.0.2/bin/spark-submit \<br>  –master yarn\<br>  –deploy-mode client\<br>  –class com.baidu.pcsdata.message.value.analysis.MsgFastCategory \<br>  –driver-cores 8 \<br>  –executor-cores 2\<br>  –num-executors 10 \<br>  –driver-memory 5G\<br>  –principal  horus/pcsdata@PCSDATA.COM\<br>  –keytab  /home/work/chenxiue/horus.keytab\<br>  –executor-memory 6G\<br>  –driver-java-options  “ -Xdebug -Xrunjdwp:transport=dt_socket,server=y,suspend=y,address=8888”\<br>  /home/work/chenxiue/spark/msg-mining/pcs_fsg-assembly-1.0.jar $inputpath $outputpath $modelpath</p>
+<p>####3.在idea上面设置好断点后（把鼠标放在需要断的某行上面，然后左击出现红点）运行<br>run-&gt;debug “remote debug”</p>
+<p>好了，现在就能够愉快地修改代码并且编译调试了～</p>
+<p>###参考：<br><a href="https://segmentfault.com/a/1190000008867470" target="_blank" rel="external">https://segmentfault.com/a/1190000008867470</a></p>
+
       
     </div>
     <footer class="article-footer">
-      <a data-url="http://yoursite.com/2018/03/02/spark远程调试/" data-id="cje9m0tlt0003je3c42lujow8" class="article-share-link">Share</a>
+      <a data-url="http://yoursite.com/2018/03/02/spark远程调试/" data-id="cje9mc4qd0003mn3c0tkx7n9q" class="article-share-link">Share</a>
       
       
     </footer>
