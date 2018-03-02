@@ -48,9 +48,9 @@
       </nav>
       <nav id="sub-nav">
         
-          <a id="nav-rss-link" class="nav-icon" href="/atom.xml" title="RSS Feed"></a>
+          <a id="nav-rss-link" class="nav-icon" href="/atom.xml" title="Flux RSS"></a>
         
-        <a id="nav-search-btn" class="nav-icon" title="Search"></a>
+        <a id="nav-search-btn" class="nav-icon" title="Rechercher"></a>
       </nav>
       <div id="search-form-wrap">
         <form action="//google.com/search" method="get" accept-charset="UTF-8" class="search-form"><input type="search" name="q" class="search-form-input" placeholder="Search"><button type="submit" class="search-form-submit">&#xF002;</button><input type="hidden" name="sitesearch" value="http://yoursite.com"></form>
@@ -92,7 +92,7 @@
 <p>完整编译：</p>
 <pre><code>./build/mvn -Pyarn -Phadoop-2.7 -Phive -Phive-thriftserver -Dhadoop.version=2.7.3 -DskipTests clean package
 </code></pre><p>增量编译：</p>
-<pre><code>./build/mvn -Pyarn -Phadoop-2.7 -Phive -Phive-thriftserver ~package
+<pre><code>./build/mvn -Pyarn -Phadoop-2.7 -Phive -Phive-thriftserver -DskipTests  ~package
 export SPARK_PREPEND_CLASSES=1
 </code></pre><p>###idea远程调试</p>
 <p>先决条件：拥有一个在idea能够完整编译通过的spark项目</p>
@@ -109,7 +109,7 @@ export SPARK_PREPEND_CLASSES=1
       
     </div>
     <footer class="article-footer">
-      <a data-url="http://yoursite.com/2018/03/02/spark远程调试/" data-id="cje9mc4qd0003mn3c0tkx7n9q" class="article-share-link">Share</a>
+      <a data-url="http://yoursite.com/2018/03/02/spark远程调试/" data-id="cje9mt10z0000vu3cg5zvbxp3" class="article-share-link">Partager</a>
       
       
     </footer>
@@ -350,7 +350,7 @@ export SPARK_PREPEND_CLASSES=1
       
     </div>
     <footer class="article-footer">
-      <a data-url="http://yoursite.com/2018/01/11/原创－flume写hdfs性能优化/" data-id="cje9mc4qg0004mn3cbxe679h8" class="article-share-link">Share</a>
+      <a data-url="http://yoursite.com/2018/01/11/原创－flume写hdfs性能优化/" data-id="cje9mt11o0004vu3cd3y1tx9i" class="article-share-link">Partager</a>
       
       
     </footer>
@@ -443,7 +443,7 @@ spark.executor.extraJavaOptions  -XX:+PrintGCDetails -XX:+PrintGCTimeStamps
       
     </div>
     <footer class="article-footer">
-      <a data-url="http://yoursite.com/2017/04/19/spark-on-yarn情况下historyserver的配置/" data-id="cje9mc4pu0000mn3chq5gpyrl" class="article-share-link">Share</a>
+      <a data-url="http://yoursite.com/2017/04/19/spark-on-yarn情况下historyserver的配置/" data-id="cje9mt11e0002vu3ccnqvnv3a" class="article-share-link">Partager</a>
       
       
     </footer>
@@ -780,7 +780,7 @@ spark.sql.parquet.compression.codec=snappy
       
     </div>
     <footer class="article-footer">
-      <a data-url="http://yoursite.com/2017/04/13/spark中parquet文件写入优化/" data-id="cje9mc4q30001mn3cjjv9iy4v" class="article-share-link">Share</a>
+      <a data-url="http://yoursite.com/2017/04/13/spark中parquet文件写入优化/" data-id="cje9mt1190001vu3cipmww2jh" class="article-share-link">Partager</a>
       
       
     </footer>
@@ -978,7 +978,7 @@ dfs.client.failover.proxy.provider.smallfile = org.apache.hadoop.hdfs.server.nam
       
     </div>
     <footer class="article-footer">
-      <a data-url="http://yoursite.com/2017/04/13/在kerberos-HA环境下的ranger编译安装/" data-id="cje9mc4ql0005mn3c07cq9syw" class="article-share-link">Share</a>
+      <a data-url="http://yoursite.com/2017/04/13/在kerberos-HA环境下的ranger编译安装/" data-id="cje9mt11t0005vu3cqk1z529c" class="article-share-link">Partager</a>
       
       
     </footer>
@@ -996,7 +996,7 @@ dfs.client.failover.proxy.provider.smallfile = org.apache.hadoop.hdfs.server.nam
   
     
   <div class="widget-wrap">
-    <h3 class="widget-title">Categories</h3>
+    <h3 class="widget-title">Catégories</h3>
     <div class="widget">
       <ul class="category-list"><li class="category-list-item"><a class="category-list-link" href="/categories/性能优化/">性能优化</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/部署文档/">部署文档</a></li></ul>
     </div>
@@ -1021,7 +1021,7 @@ dfs.client.failover.proxy.provider.smallfile = org.apache.hadoop.hdfs.server.nam
   
     
   <div class="widget-wrap">
-    <h3 class="widget-title">Recent Posts</h3>
+    <h3 class="widget-title">Articles récents</h3>
     <div class="widget">
       <ul>
         
@@ -1058,7 +1058,7 @@ dfs.client.failover.proxy.provider.smallfile = org.apache.hadoop.hdfs.server.nam
   <div class="outer">
     <div id="footer-info" class="inner">
       &copy; 2018 XiueChen<br>
-      Powered by <a href="http://hexo.io/" target="_blank">Hexo</a>
+      Propulsé by <a href="http://hexo.io/" target="_blank">Hexo</a>
       <script async src="//dn-lbstatics.qbox.me/busuanzi/2.3/busuanzi.pure.mini.js"></script>
       <span id="busuanzi_container_site_uv"><br />本站访客数<span id="busuanzi_value_site_uv"></span>人次
       <span id="busuanzi_container_site_pv"><br />本站访问次数<span id="busuanzi_value_site_pv"></span>
