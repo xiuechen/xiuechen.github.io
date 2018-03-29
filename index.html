@@ -50,7 +50,7 @@
         
           <a id="nav-rss-link" class="nav-icon" href="/atom.xml" title="RSS Feed"></a>
         
-        <a id="nav-search-btn" class="nav-icon" title="Zoeken"></a>
+        <a id="nav-search-btn" class="nav-icon" title="Search"></a>
       </nav>
       <div id="search-form-wrap">
         <form action="//google.com/search" method="get" accept-charset="UTF-8" class="search-form"><input type="search" name="q" class="search-form-input" placeholder="Search"><button type="submit" class="search-form-submit">&#xF002;</button><input type="hidden" name="sitesearch" value="http://yoursite.com"></form>
@@ -60,6 +60,238 @@
 </header>
       <div class="outer">
         <section id="main">
+  
+    <article id="post-druid安装配置-数据导入" class="article article-type-post" itemscope itemprop="blogPost">
+  <div class="article-meta">
+    <a href="/2018/03/29/druid安装配置-数据导入/" class="article-date">
+  <time datetime="2018-03-29T11:13:50.000Z" itemprop="datePublished">2018-03-29</time>
+</a>
+    
+  <div class="article-category">
+    <a class="article-category-link" href="/categories/部署文档/">部署文档</a>
+  </div>
+
+  </div>
+  <div class="article-inner">
+    
+    
+      <header class="article-header">
+        
+  
+    <h1 itemprop="name">
+      <a class="article-title" href="/2018/03/29/druid安装配置-数据导入/">druid安装配置&amp;数据导入</a>
+    </h1>
+  
+
+      </header>
+    
+    <div class="article-entry" itemprop="articleBody">
+      <span id="busuanzi_container_page_pv">
+        <br /><br /> 阅读次数<span id="busuanzi_value_page_pv"></span>
+        </span>
+      
+        <p>一.druid的设计与架构</p>
+<p>设计：<a href="http://druid.io/docs/0.9.1.1/design/design.html" target="_blank" rel="external">http://druid.io/docs/0.9.1.1/design/design.html</a><br>白皮书：<a href="http://static.druid.io/docs/druid.pdf" target="_blank" rel="external">http://static.druid.io/docs/druid.pdf</a></p>
+<p>(<a href="https://docs.imply.io/on-premise/deploy/cluster" target="_blank" rel="external">https://docs.imply.io/on-premise/deploy/cluster</a>)</p>
+<p>五种节点类型：</p>
+<p>Historical: 离线节点，加载离线存储的segments。它和coordinator通过zk进行联系。当接收到新的segments加载请求的时候，先查本地，没命中则根据metadata信息从deep storage中加载，加载完成后申报到zk，这时候该segment就可以被查询</p>
+<p>Broker:接受查询，根据zk的信息查询segment的位置，将查询路由到正确的位置。最后merge结果返回</p>
+<p>Coordinator:协调segment的存储，决定哪些segments应该进historical nodes</p>
+<p>Indexing Service:包含三大组件。peon,middle manager,overlord<br>任务从overlord的http提交，由middle manager分配给Peons处理。</p>
+<p>Realtime:实时节点</p>
+<p>其他名词：</p>
+<p>Tranquility： helps you send real-time event streams to Druid and handles partitioning, replication, service discovery, and schema rollover, seamlessly and without downtime</p>
+<p>Tranquility server:一个http server，有它就可以不需要写java程序来导数据到druid，而通过http接口就可以</p>
+<p>依赖的外围模块：</p>
+<p>Deep Storage：<br>Metadata Storage：<br>ZooKeeper：</p>
+<hr>
+<p>二.安装部署：</p>
+<p>1.参考</p>
+<p><a href="http://druid.io/docs/0.9.1.1/tutorials/cluster.html（./bin/xxx.sh" target="_blank" rel="external">http://druid.io/docs/0.9.1.1/tutorials/cluster.html（./bin/xxx.sh</a> start启动各个对应的服务）<br><a href="http://www.open-open.com/lib/view/open1447852962978.html" target="_blank" rel="external">http://www.open-open.com/lib/view/open1447852962978.html</a></p>
+<p>2.下载druid以及mysql extenstion&amp;tranquility</p>
+<p><a href="http://druid.io/downloads.html" target="_blank" rel="external">http://druid.io/downloads.html</a></p>
+<p>3.拷贝mysql-metadata-storage-0.12.0.tar.gz到extensions路径下并解压</p>
+<p>create database <code>druid</code> DEFAULT CHARACTER SET utf8 COLLATE utf8_general_ci;</p>
+<p>4.配置conf/druid/_common/common.runtime.properties</p>
+<p>5.拷贝hadoop相关配置到conf/druid/_common下（core-site.xml, hdfs-site.xml, yarn-site.xml, mapred-site.xm）</p>
+<p>6.启动各个组件：(也可以使用sh bin/XXX.sh start来启动)</p>
+<p>启动一个实例就够了<br>java <code>cat conf/druid/coordinator/jvm.config | xargs</code> -cp conf/druid/_common:conf/druid/coordinator:lib/<em> io.druid.cli.Main server coordinator<br>java <code>cat conf/druid/overlord/jvm.config | xargs</code> -cp conf/druid/_common:conf/druid/overlord:lib/</em> io.druid.cli.Main server overlord</p>
+<p>可以按需启动多个实例<br>java <code>cat conf/druid/historical/jvm.config | xargs</code> -cp conf/druid/_common:conf/druid/historical:lib/<em> io.druid.cli.Main server historical<br>java <code>cat conf/druid/middleManager/jvm.config | xargs</code> -cp conf/druid/_common:conf/druid/middleManager:lib/</em> io.druid.cli.Main server middleManager<br>java <code>cat conf/druid/broker/jvm.config | xargs</code> -cp conf/druid/_common:conf/druid/broker:lib/* io.druid.cli.Main server broker</p>
+<p>遇到问题：</p>
+<p>historical node内存启不了</p>
+<p>启动得时候报错：</p>
+<pre><code>12) Not enough direct memory.  Please adjust -XX:MaxDirectMemorySize, druid.processing.buffer.sizeBytes, druid.processing.numThreads, or druid.processing.numMergeBuffers: maxDirectMemory[2,147,483,648], memoryNeeded[5,368,709,120] = druid.processing.buffer.sizeBytes[536,870,912] * (druid.processing.numMergeBuffers[2] + druid.processing.numThreads[7] + 1)
+</code></pre><p>根据提示将maxDirectMemory从2G修改为5G就可以了。。</p>
+<p><a href="https://groups.google.com/forum/#!topic/druid-user/j0sFcUIiQiE" target="_blank" rel="external">https://groups.google.com/forum/#!topic/druid-user/j0sFcUIiQiE</a></p>
+<p>三.druid的数据导入简介：(分files和stream)</p>
+<p>files方式不依赖tranquility，参考<a href="http://druid.io/docs/latest/tutorials/tutorial-batch.html" target="_blank" rel="external">http://druid.io/docs/latest/tutorials/tutorial-batch.html</a></p>
+<p>stream数据导入有两种方式：</p>
+<p>1.Tranquility (a Druid-aware client) and the indexing service(push方式)</p>
+<p>2.Realtime nodes(不推荐，有若干缺点：<a href="http://druid.io/docs/0.9.1.1/ingestion/stream-pull.html#limitations" target="_blank" rel="external">http://druid.io/docs/0.9.1.1/ingestion/stream-pull.html#limitations</a>) (pull)</p>
+<p>stream push &amp; stream pull &amp;batch ingestion</p>
+<p>stream push有两种方式：</p>
+<p>1）通过Tranquility server通过http接口推进去<br><a href="http://druid.io/docs/0.9.1.1/tutorials/tutorial-streams.html" target="_blank" rel="external">http://druid.io/docs/0.9.1.1/tutorials/tutorial-streams.html</a></p>
+<p>2）通过Tranquility Kafka推进去</p>
+<p>stream pull:</p>
+<p>通过realtime node的方式，参考：<br><a href="http://druid.io/docs/latest/ingestion/stream-pull.html" target="_blank" rel="external">http://druid.io/docs/latest/ingestion/stream-pull.html</a></p>
+<p>四.druid的数据导入</p>
+<p>1.files导入，参考：<a href="http://druid.io/docs/latest/tutorials/tutorial-batch.html" target="_blank" rel="external">http://druid.io/docs/latest/tutorials/tutorial-batch.html</a></p>
+<p>curl -X ‘POST’ -H ‘Content-Type:application/json’ -d@./wikiticker-index.json host-170.bjyz:8090/druid/indexer/v1/task</p>
+<p>遇到问题：</p>
+<p>1)peon启动不起来，报错：</p>
+<pre><code>3) Not enough direct memory.  Please adjust -XX:MaxDirectMemorySize, druid.processing.buffer.sizeBytes, druid.processing.numThreads, or druid.processing.numMergeBuffers: maxDirectMemory[1,908,932,608], memoryNeeded[2,684,354,560] = druid.processing.buffer.sizeBytes[536,870,912] * (druid.processing.numMergeBuffers[2] + druid.processing.numThreads[2] + 1)
+</code></pre><p>修改：druid.indexer.runner.javaOpts=-server -Xmx2g -XX:MaxDirectMemorySize=2560m -Duser.timezone=UTC -Dfile.encoding=UTF-8 -Djav<br>a.util.logging.manager=org.apache.logging.log4j.jul.LogManager</p>
+<p>可以查看状态：</p>
+<p><a href="http://host-170.bjyz.baidu.com:8090/console.html" target="_blank" rel="external">http://host-170.bjyz.baidu.com:8090/console.html</a> （overlord得端口,可以查看导入服务得运行状态）</p>
+<p>可以看到middlemanager已经启动了一个peon来执行任务：</p>
+<p>Main internal peon var/druid/task/index_hadoop_wikiticker_2018-03-27T10:07:12.646Z/task.json var/druid/task/index_hadoop_wikiticker_2018-03-27T10:07:12.646Z/d93e84a0-d9f2-40e4-8b1a-0e24072a00f3/status.json</p>
+<p>2)默认的mr jobs是提交到yarn集群的default队列，为了修改该peon所提交得mapreduce job得queue name。设置一下common中得mapred-site.xml得mapreduce.job.queuename参数</p>
+<p>3)关于yarn集群java版本和druid依赖java版本不一致得问题：</p>
+<p>conf.set(“mapred.child.env”, “JAVA_HOME=/home/iteblog/java/jdk1.8.0_25”);<br>conf.set(“yarn.app.mapreduce.am.env”, “JAVA_HOME=/home/iteblog/java/jdk1.8.0_25”);</p>
+<p>可以参考：<a href="https://www.iteblog.com/archives/1883.html" target="_blank" rel="external">https://www.iteblog.com/archives/1883.html</a></p>
+<p> 4)遇到JNDI lookup class is not available because this JRE does not support JNDI的问题(这个warning无视就好了。。。哈哈)</p>
+<p> 参考<a href="http://druid.io/docs/latest/operations/other-hadoop.html的Tip" target="_blank" rel="external">http://druid.io/docs/latest/operations/other-hadoop.html的Tip</a> 2解决</p>
+<p> 5)使用的wikiticker-index.json文件</p>
+<pre><code>{
+ &quot;type&quot; : &quot;index_hadoop&quot;,
+ &quot;spec&quot; : {
+   &quot;ioConfig&quot; : {
+     &quot;type&quot; : &quot;hadoop&quot;,
+     &quot;inputSpec&quot; : {
+       &quot;type&quot; : &quot;static&quot;,
+       &quot;paths&quot; : &quot;/smallfile/druid/quickstart/wikiticker-2015-09-12-sampled.json.gz&quot;
+     }
+   },
+   &quot;dataSchema&quot; : {
+     &quot;dataSource&quot; : &quot;wikiticker&quot;,
+     &quot;granularitySpec&quot; : {
+       &quot;type&quot; : &quot;uniform&quot;,
+       &quot;segmentGranularity&quot; : &quot;day&quot;,
+       &quot;queryGranularity&quot; : &quot;none&quot;,
+       &quot;intervals&quot; : [&quot;2015-09-12/2015-09-13&quot;]
+     },
+     &quot;parser&quot; : {
+       &quot;type&quot; : &quot;hadoopyString&quot;,
+               &quot;parseSpec&quot; : {
+         &quot;format&quot; : &quot;json&quot;,
+         &quot;dimensionsSpec&quot; : {
+           &quot;dimensions&quot; : [
+             &quot;channel&quot;,
+             &quot;cityName&quot;,
+             &quot;comment&quot;,
+             &quot;countryIsoCode&quot;,
+             &quot;countryName&quot;,
+             &quot;isAnonymous&quot;,
+             &quot;isMinor&quot;,
+             &quot;isNew&quot;,
+             &quot;isRobot&quot;,
+             &quot;isUnpatrolled&quot;,
+             &quot;metroCode&quot;,
+             &quot;namespace&quot;,
+             &quot;page&quot;,
+             &quot;regionIsoCode&quot;,
+                           &quot;regionName&quot;,
+             &quot;user&quot;
+           ]
+         },
+         &quot;timestampSpec&quot; : {
+           &quot;format&quot; : &quot;auto&quot;,
+           &quot;column&quot; : &quot;time&quot;
+         }
+       }
+     },
+     &quot;metricsSpec&quot; : [
+       {
+         &quot;name&quot; : &quot;count&quot;,
+         &quot;type&quot; : &quot;count&quot;
+       },
+       {
+         &quot;name&quot; : &quot;added&quot;,
+         &quot;type&quot; : &quot;longSum&quot;,
+         &quot;fieldName&quot; : &quot;added&quot;
+       },        {
+         &quot;name&quot; : &quot;deleted&quot;,
+         &quot;type&quot; : &quot;longSum&quot;,
+         &quot;fieldName&quot; : &quot;deleted&quot;
+       },
+       {
+         &quot;name&quot; : &quot;delta&quot;,
+         &quot;type&quot; : &quot;longSum&quot;,
+         &quot;fieldName&quot; : &quot;delta&quot;
+       },
+       {
+         &quot;name&quot; : &quot;user_unique&quot;,
+         &quot;type&quot; : &quot;hyperUnique&quot;,
+         &quot;fieldName&quot; : &quot;user&quot;
+       }
+     ]
+   },
+   &quot;tuningConfig&quot; : {
+     &quot;type&quot; : &quot;hadoop&quot;,
+     &quot;partitionsSpec&quot; : {        &quot;type&quot; : &quot;hashed&quot;,
+       &quot;targetPartitionSize&quot; : 5000000
+     },
+     &quot;jobProperties&quot; : {
+       &quot;mapreduce.map.java.opts&quot;:&quot;-Duser.timezone=UTC -Dfile.encoding=UTF-8&quot;,
+       &quot;mapreduce.reduce.java.opts&quot;:&quot;-Duser.timezone=UTC -Dfile.encoding=UTF-8&quot;,
+       &quot;mapred.child.env&quot;:&quot;JAVA_HOME=/home/work/.jumbo/opt/sun-java8&quot;,
+       &quot;yarn.app.mapreduce.am.env&quot;:&quot;JAVA_HOME=/home/work/.jumbo/opt/sun-java8&quot;,
+       &quot;mapreduce.job.queuename&quot;:&quot;bigJob&quot;,
+       &quot;mapreduce.job.classloader&quot;: &quot;true&quot;
+       }
+   }
+ }
+</code></pre><p>6）确认任务真的导入成功</p>
+<p>通过broker接口查询导入的user有多少<br>curl -X POST ‘host-175.bjyz:8082/druid/v2/?pretty’ -H ‘Content-Type:application/json’ -d @query/useruniq.json</p>
+<p>useruniq.json内容：</p>
+<pre><code>{
+  &quot;queryType&quot;: &quot;timeseries&quot;,
+  &quot;dataSource&quot;: &quot;wikiticker&quot;,
+  &quot;granularity&quot;: &quot;day&quot;,
+  &quot;aggregations&quot;: [
+    { &quot;type&quot;: &quot;hyperUnique&quot;, &quot;name&quot;: &quot;user_unique&quot;, &quot;fieldName&quot;: &quot;user_unique&quot; }
+  ],
+  &quot;intervals&quot;: [ &quot;2015-09-12T00:00:00.000/2015-09-13T00:00:00.000&quot; ],
+  &quot;context&quot; : {
+    &quot;skipEmptyBuckets&quot;: &quot;true&quot;
+  }
+}
+</code></pre><p>通过broker接口查询导入的meta信息：<br>curl -X POST ‘host-175.bjyz:8082/druid/v2/?pretty’ -H ‘Content-Type:application/json’ -d @query/metadata.json</p>
+<pre><code>{
+  &quot;queryType&quot;:&quot;segmentMetadata&quot;,
+  &quot;dataSource&quot;:&quot;wikiticker&quot;,
+  &quot;intervals&quot;:[&quot;2015-09-12/2015-09-13&quot;]
+}
+</code></pre><p>或者使用自带的查询串<br>curl -X POST ‘host-175.bjyz:8082/druid/v2/?pretty’ -H ‘Content-Type:application/json’ -d @wikiticker-top-pages.json查看被编辑最大的pages</p>
+<p>2.stream push方式（参考：<a href="http://druid.io/docs/latest/ingestion/stream-push.html）" target="_blank" rel="external">http://druid.io/docs/latest/ingestion/stream-push.html）</a><br>stream push主要是借助了tranquility,关于tranquility的介绍：<a href="https://github.com/druid-io/tranquility/blob/master/docs/overview.md" target="_blank" rel="external">https://github.com/druid-io/tranquility/blob/master/docs/overview.md</a></p>
+<p>tranquility导入数据主要有几种方式：</p>
+<p>a)tranquility server (http接口)<br>b)tranquility kafka（用户将数据推入kafka，tranquility写入druid）<br>c)自己写一个依赖tranquility library的JVM app<br>参考：<a href="https://github.com/druid-io/tranquility/blob/master/docs/core.md" target="_blank" rel="external">https://github.com/druid-io/tranquility/blob/master/docs/core.md</a></p>
+<p>d)利用tranquility里面实现的各种流连接器，比如spark如何写入druid:<br><a href="https://github.com/druid-io/tranquility/blob/master/docs/spark.md" target="_blank" rel="external">https://github.com/druid-io/tranquility/blob/master/docs/spark.md</a></p>
+<p>其中a)b)方案依赖一定第三方服务。c)d)只依赖tranquility的library</p>
+<p>针对spark中的计算结果如何写入druid，会另外开一篇文章专门讨论</p>
+<p>3.stream pull方式</p>
+<p>这种方式需要用到realtime node。貌似不推荐，这里不多研究</p>
+<p>四.druid&amp;caravel</p>
+<p>当在druid存储了数据后，我们使用caravel页面进行展示</p>
+<p>1）add druid cluster</p>
+<p>配置以下coordinator以及broker的地址即可<br>配置完成保存后refresh一下druid元数据</p>
+<p>然后点击进入datasource就可以愉快地olap了。如果没有数据检查下数据的起始时间。(例如例子中导入的2015年数据，需要选择4 years ago)</p>
+<p>2）配置报表</p>
+<p>在datasource视图中选择分组，度量查询之后，将结果保存成slice，点击报表标签页面可以看到刚才保存的slice，选择仪表盘页面新建仪表盘，报表就选择刚才保存的slice。。。</p>
+
+      
+    </div>
+    <footer class="article-footer">
+      <a data-url="http://yoursite.com/2018/03/29/druid安装配置-数据导入/" data-id="cjfcfcexl0002413cemcu41pe" class="article-share-link">Share</a>
+      
+      
+    </footer>
+  </div>
+  
+</article>
+
+
+
   
     <article id="post-spark远程调试" class="article article-type-post" itemscope itemprop="blogPost">
   <div class="article-meta">
@@ -110,7 +342,7 @@ export SPARK_PREPEND_CLASSES=1
       
     </div>
     <footer class="article-footer">
-      <a data-url="http://yoursite.com/2018/03/02/spark远程调试/" data-id="cje9ois220000sz3cyl80q5jw" class="article-share-link">Delen</a>
+      <a data-url="http://yoursite.com/2018/03/02/spark远程调试/" data-id="cjfcfcex70000413cbu2ju67k" class="article-share-link">Share</a>
       
       
     </footer>
@@ -351,7 +583,7 @@ export SPARK_PREPEND_CLASSES=1
       
     </div>
     <footer class="article-footer">
-      <a data-url="http://yoursite.com/2018/01/11/原创－flume写hdfs性能优化/" data-id="cje9ois3n0006sz3c17rvl6wn" class="article-share-link">Delen</a>
+      <a data-url="http://yoursite.com/2018/01/11/原创－flume写hdfs性能优化/" data-id="cjfcfcey10005413cb64ge93q" class="article-share-link">Share</a>
       
       
     </footer>
@@ -444,7 +676,7 @@ spark.executor.extraJavaOptions  -XX:+PrintGCDetails -XX:+PrintGCTimeStamps
       
     </div>
     <footer class="article-footer">
-      <a data-url="http://yoursite.com/2017/04/19/spark-on-yarn情况下historyserver的配置/" data-id="cje9ois2a0001sz3c0lf2320p" class="article-share-link">Delen</a>
+      <a data-url="http://yoursite.com/2017/04/19/spark-on-yarn情况下historyserver的配置/" data-id="cjfcfcexf0001413c5ab9hykq" class="article-share-link">Share</a>
       
       
     </footer>
@@ -781,7 +1013,7 @@ spark.sql.parquet.compression.codec=snappy
       
     </div>
     <footer class="article-footer">
-      <a data-url="http://yoursite.com/2017/04/13/spark中parquet文件写入优化/" data-id="cje9ois3j0005sz3c3bic2y0v" class="article-share-link">Delen</a>
+      <a data-url="http://yoursite.com/2017/04/13/spark中parquet文件写入优化/" data-id="cjfcfcexy0004413cmfmg9bnu" class="article-share-link">Share</a>
       
       
     </footer>
@@ -979,7 +1211,7 @@ dfs.client.failover.proxy.provider.smallfile = org.apache.hadoop.hdfs.server.nam
       
     </div>
     <footer class="article-footer">
-      <a data-url="http://yoursite.com/2017/04/13/在kerberos-HA环境下的ranger编译安装/" data-id="cje9ois3g0004sz3cgxxd59e4" class="article-share-link">Delen</a>
+      <a data-url="http://yoursite.com/2017/04/13/在kerberos-HA环境下的ranger编译安装/" data-id="cjfcfcey40006413cd1jvwq5k" class="article-share-link">Share</a>
       
       
     </footer>
@@ -997,7 +1229,7 @@ dfs.client.failover.proxy.provider.smallfile = org.apache.hadoop.hdfs.server.nam
   
     
   <div class="widget-wrap">
-    <h3 class="widget-title">Categorieën</h3>
+    <h3 class="widget-title">Categories</h3>
     <div class="widget">
       <ul class="category-list"><li class="category-list-item"><a class="category-list-link" href="/categories/性能优化/">性能优化</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/部署文档/">部署文档</a></li></ul>
     </div>
@@ -1012,7 +1244,7 @@ dfs.client.failover.proxy.provider.smallfile = org.apache.hadoop.hdfs.server.nam
   
     
   <div class="widget-wrap">
-    <h3 class="widget-title">Archieven</h3>
+    <h3 class="widget-title">Archives</h3>
     <div class="widget">
       <ul class="archive-list"><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/03/">March 2018</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/01/">January 2018</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/04/">April 2017</a></li></ul>
     </div>
@@ -1022,9 +1254,13 @@ dfs.client.failover.proxy.provider.smallfile = org.apache.hadoop.hdfs.server.nam
   
     
   <div class="widget-wrap">
-    <h3 class="widget-title">Recente berichten</h3>
+    <h3 class="widget-title">Recent Posts</h3>
     <div class="widget">
       <ul>
+        
+          <li>
+            <a href="/2018/03/29/druid安装配置-数据导入/">druid安装配置&amp;数据导入</a>
+          </li>
         
           <li>
             <a href="/2018/03/02/spark远程调试/">spark远程调试</a>
@@ -1040,10 +1276,6 @@ dfs.client.failover.proxy.provider.smallfile = org.apache.hadoop.hdfs.server.nam
         
           <li>
             <a href="/2017/04/13/spark中parquet文件写入优化/">原创-spark中parquet文件写入优化</a>
-          </li>
-        
-          <li>
-            <a href="/2017/04/13/在kerberos-HA环境下的ranger编译安装/">原创-在kerberos+HA环境下的ranger编译安装</a>
           </li>
         
       </ul>
