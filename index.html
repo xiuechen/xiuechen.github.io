@@ -48,9 +48,9 @@
       </nav>
       <nav id="sub-nav">
         
-          <a id="nav-rss-link" class="nav-icon" href="/atom.xml" title="Flux RSS"></a>
+          <a id="nav-rss-link" class="nav-icon" href="/atom.xml" title="RSS Feed"></a>
         
-        <a id="nav-search-btn" class="nav-icon" title="Rechercher"></a>
+        <a id="nav-search-btn" class="nav-icon" title="Zoeken"></a>
       </nav>
       <div id="search-form-wrap">
         <form action="//google.com/search" method="get" accept-charset="UTF-8" class="search-form"><input type="search" name="q" class="search-form-input" placeholder="Search"><button type="submit" class="search-form-submit">&#xF002;</button><input type="hidden" name="sitesearch" value="http://yoursite.com"></form>
@@ -60,49 +60,6 @@
 </header>
       <div class="outer">
         <section id="main">
-  
-    <article id="post-LDA分布要点" class="article article-type-post" itemscope itemprop="blogPost">
-  <div class="article-meta">
-    <a href="/2020/02/03/LDA分布要点/" class="article-date">
-  <time datetime="2020-02-03T01:34:01.341Z" itemprop="datePublished">2020-02-03</time>
-</a>
-    
-  </div>
-  <div class="article-inner">
-    
-    
-    <div class="article-entry" itemprop="articleBody">
-      <span id="busuanzi_container_page_pv">
-        <br /><br /> 阅读次数<span id="busuanzi_value_page_pv"></span>
-        </span>
-      
-        <h1 id="LDA分布要点"><a href="#LDA分布要点" class="headerlink" title="LDA分布要点"></a>LDA分布要点</h1><hr>
-<p>title: LDA分布要点<br>date: 2020-02-03 09:31:00</p>
-<h2 id="tags-机器学习"><a href="#tags-机器学习" class="headerlink" title="tags:机器学习"></a>tags:机器学习</h2><p>LDA：Latent Dirichlet Allocation，隐含狄利克雷分布</p>
-<p>##预备知识：<br>1)贝叶斯原理：<br>P(A|E)=P(E|A)*P(A)/P(E)<br>其中E为观察到的事件，P(A|E)成为后验分布，P(A)称为先验分布。P(E|A)称为似然函数<br>2）当先验分布和后验分布为同一分布的时候，先验分布（后验分布）和似然函数为共轭分布<br>3）二项分布的共轭分布是beta分布<br>4）多项分布的共轭分布为狄利克雷分布</p>
-<p>其中beta分布和狄利克雷分布是概率的概率分布</p>
-<p>##核心要点：<br>1）词袋模型，根据观察到的p(W|D)来拟合模型<br>其中P(W|D)=P(W|T)P(T|P)其中w表示词，T表示主题</p>
-<p>2)我们假设文章的构成过程是先选以一定概率选择主题，然后在主题里选词<br>假设主题是k个，那么在这种情况下，假设主题的似然分布是多项分布，主题的先验分布是狄利克雷分布。</p>
-<p>对于每个主题来说，里面的词的先验分布也是狄利克雷分布，似然函数是多项分布。</p>
-<p>那么这两个分布的形式确定，参数未定，训练的过程就是：<br>1）对每篇文档，在主题分布中抽取一个主题；<br>2）对抽到的主题所对应的单词分布中随机抽取一个单词；<br>3）重复上述过程直至遍历整篇文档中的每个单词</p>
-<p>经过以上三步，就可以看一下两个分布的乘积，是否符合给定文章的分布，以此来调整。</p>
-<p>参考：<br><a href="https://blog.csdn.net/qq_39422642/article/details/78730662" target="_blank" rel="external">https://blog.csdn.net/qq_39422642/article/details/78730662</a><br><a href="https://blog.csdn.net/kongkongqixi/article/details/82866365" target="_blank" rel="external">https://blog.csdn.net/kongkongqixi/article/details/82866365</a></p>
-<p>题外话：</p>
-<p>google的rephil<br><a href="https://zhuanlan.zhihu.com/p/19901994" target="_blank" rel="external">https://zhuanlan.zhihu.com/p/19901994</a></p>
-
-      
-    </div>
-    <footer class="article-footer">
-      <a data-url="http://yoursite.com/2020/02/03/LDA分布要点/" data-id="ck65s86ul0000483c2amsbrdk" class="article-share-link">Partager</a>
-      
-      
-    </footer>
-  </div>
-  
-</article>
-
-
-
   
     <article id="post-druid安装配置-数据导入" class="article article-type-post" itemscope itemprop="blogPost">
   <div class="article-meta">
@@ -325,7 +282,7 @@
       
     </div>
     <footer class="article-footer">
-      <a data-url="http://yoursite.com/2018/03/29/druid安装配置-数据导入/" data-id="ck65s86uu0001483c7dfkfhzp" class="article-share-link">Partager</a>
+      <a data-url="http://yoursite.com/2018/03/29/druid安装配置-数据导入/" data-id="ck65sd9gm00007t3cjee5vrwz" class="article-share-link">Delen</a>
       
       
     </footer>
@@ -389,7 +346,7 @@ export SPARK_PREPEND_CLASSES=1
       
     </div>
     <footer class="article-footer">
-      <a data-url="http://yoursite.com/2018/03/02/spark远程调试/" data-id="ck65s86vm0005483czbw1mwqy" class="article-share-link">Partager</a>
+      <a data-url="http://yoursite.com/2018/03/02/spark远程调试/" data-id="ck65sd9he00047t3caz5x6xq0" class="article-share-link">Delen</a>
       
       
     </footer>
@@ -630,7 +587,7 @@ export SPARK_PREPEND_CLASSES=1
       
     </div>
     <footer class="article-footer">
-      <a data-url="http://yoursite.com/2018/01/11/原创－flume写hdfs性能优化/" data-id="ck65s86vp0006483cda76czog" class="article-share-link">Partager</a>
+      <a data-url="http://yoursite.com/2018/01/11/原创－flume写hdfs性能优化/" data-id="ck65sd9hr00077t3cc59011a6" class="article-share-link">Delen</a>
       
       
     </footer>
@@ -723,7 +680,7 @@ spark.executor.extraJavaOptions  -XX:+PrintGCDetails -XX:+PrintGCTimeStamps
       
     </div>
     <footer class="article-footer">
-      <a data-url="http://yoursite.com/2017/04/19/spark-on-yarn情况下historyserver的配置/" data-id="ck65s86v00002483c3zzk5egg" class="article-share-link">Partager</a>
+      <a data-url="http://yoursite.com/2017/04/19/spark-on-yarn情况下historyserver的配置/" data-id="ck65sd9gx00017t3c163px8e5" class="article-share-link">Delen</a>
       
       
     </footer>
@@ -1060,7 +1017,7 @@ spark.sql.parquet.compression.codec=snappy
       
     </div>
     <footer class="article-footer">
-      <a data-url="http://yoursite.com/2017/04/13/spark中parquet文件写入优化/" data-id="ck65s86vi0004483c12r7xe53" class="article-share-link">Partager</a>
+      <a data-url="http://yoursite.com/2017/04/13/spark中parquet文件写入优化/" data-id="ck65sd9hb00037t3co19yk6qw" class="article-share-link">Delen</a>
       
       
     </footer>
@@ -1258,7 +1215,7 @@ dfs.client.failover.proxy.provider.smallfile = org.apache.hadoop.hdfs.server.nam
       
     </div>
     <footer class="article-footer">
-      <a data-url="http://yoursite.com/2017/04/13/在kerberos-HA环境下的ranger编译安装/" data-id="ck65s86vx0008483cf2wsi17s" class="article-share-link">Partager</a>
+      <a data-url="http://yoursite.com/2017/04/13/在kerberos-HA环境下的ranger编译安装/" data-id="ck65sd9hi00057t3cjzc03wz6" class="article-share-link">Delen</a>
       
       
     </footer>
@@ -1276,7 +1233,7 @@ dfs.client.failover.proxy.provider.smallfile = org.apache.hadoop.hdfs.server.nam
   
     
   <div class="widget-wrap">
-    <h3 class="widget-title">Catégories</h3>
+    <h3 class="widget-title">Categorieën</h3>
     <div class="widget">
       <ul class="category-list"><li class="category-list-item"><a class="category-list-link" href="/categories/性能优化/">性能优化</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/源码调试/">源码调试</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/部署文档/">部署文档</a></li></ul>
     </div>
@@ -1291,9 +1248,9 @@ dfs.client.failover.proxy.provider.smallfile = org.apache.hadoop.hdfs.server.nam
   
     
   <div class="widget-wrap">
-    <h3 class="widget-title">Archives</h3>
+    <h3 class="widget-title">Archieven</h3>
     <div class="widget">
-      <ul class="archive-list"><li class="archive-list-item"><a class="archive-list-link" href="/archives/2020/02/">February 2020</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/03/">March 2018</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/01/">January 2018</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/04/">April 2017</a></li></ul>
+      <ul class="archive-list"><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/03/">March 2018</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/01/">January 2018</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/04/">April 2017</a></li></ul>
     </div>
   </div>
 
@@ -1301,13 +1258,9 @@ dfs.client.failover.proxy.provider.smallfile = org.apache.hadoop.hdfs.server.nam
   
     
   <div class="widget-wrap">
-    <h3 class="widget-title">Articles récents</h3>
+    <h3 class="widget-title">Recente berichten</h3>
     <div class="widget">
       <ul>
-        
-          <li>
-            <a href="/2020/02/03/LDA分布要点/">(no title)</a>
-          </li>
         
           <li>
             <a href="/2018/03/29/druid安装配置-数据导入/">druid安装配置&amp;数据导入</a>
@@ -1325,6 +1278,10 @@ dfs.client.failover.proxy.provider.smallfile = org.apache.hadoop.hdfs.server.nam
             <a href="/2017/04/19/spark-on-yarn情况下historyserver的配置/">原创-spark-on-yarn情况下historyserver的配置</a>
           </li>
         
+          <li>
+            <a href="/2017/04/13/spark中parquet文件写入优化/">原创-spark中parquet文件写入优化</a>
+          </li>
+        
       </ul>
     </div>
   </div>
@@ -1338,7 +1295,7 @@ dfs.client.failover.proxy.provider.smallfile = org.apache.hadoop.hdfs.server.nam
   <div class="outer">
     <div id="footer-info" class="inner">
       &copy; 2020 XiueChen<br>
-      Propulsé by <a href="http://hexo.io/" target="_blank">Hexo</a>
+      Powered by <a href="http://hexo.io/" target="_blank">Hexo</a>
       <script async src="//dn-lbstatics.qbox.me/busuanzi/2.3/busuanzi.pure.mini.js"></script>
       <span id="busuanzi_container_site_uv"><br />本站访客数<span id="busuanzi_value_site_uv"></span>人次
       <span id="busuanzi_container_site_pv"><br />本站访问次数<span id="busuanzi_value_site_pv"></span>
