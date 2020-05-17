@@ -48,9 +48,9 @@
       </nav>
       <nav id="sub-nav">
         
-          <a id="nav-rss-link" class="nav-icon" href="/atom.xml" title="Flux RSS"></a>
+          <a id="nav-rss-link" class="nav-icon" href="/atom.xml" title="RSS Feed"></a>
         
-        <a id="nav-search-btn" class="nav-icon" title="Rechercher"></a>
+        <a id="nav-search-btn" class="nav-icon" title="Search"></a>
       </nav>
       <div id="search-form-wrap">
         <form action="//google.com/search" method="get" accept-charset="UTF-8" class="search-form"><input type="search" name="q" class="search-form-input" placeholder="Search"><button type="submit" class="search-form-submit">&#xF002;</button><input type="hidden" name="sitesearch" value="http://yoursite.com"></form>
@@ -60,6 +60,765 @@
 </header>
       <div class="outer">
         <section id="main">
+  
+    <article id="post-hugegraph-cassadra底层存储实现" class="article article-type-post" itemscope itemprop="blogPost">
+  <div class="article-meta">
+    <a href="/2020/05/17/hugegraph-cassadra底层存储实现/" class="article-date">
+  <time datetime="2020-05-17T02:16:53.000Z" itemprop="datePublished">2020-05-17</time>
+</a>
+    
+  </div>
+  <div class="article-inner">
+    
+    
+      <header class="article-header">
+        
+  
+    <h1 itemprop="name">
+      <a class="article-title" href="/2020/05/17/hugegraph-cassadra底层存储实现/">hugegraph+cassadra底层存储实现</a>
+    </h1>
+  
+
+      </header>
+    
+    <div class="article-entry" itemprop="articleBody">
+      <span id="busuanzi_container_page_pv">
+        <br /><br /> 阅读次数<span id="busuanzi_value_page_pv"></span>
+        </span>
+      
+        <p>参考文档：</p>
+<p>1.hugegraph的索引：<br><a href="https://blog.csdn.net/it1993/article/details/89492296" target="_blank" rel="external">https://blog.csdn.net/it1993/article/details/89492296</a></p>
+<p>2.底层存储结构<br><a href="https://www.jianshu.com/p/c5b1d59b1fcb" target="_blank" rel="external">https://www.jianshu.com/p/c5b1d59b1fcb</a></p>
+<p>###cassadra中的底层存储表</p>
+<p>（其中g<em>x开头的基本是给业务数据用的表，而s</em>开头的基本是系统用的表.16张是索引相关的表，3张系统异步任务表，1张counter表，7张存储表）</p>
+<pre><code>cqlsh&gt; desc schgraph（测试用的keyspace,根据自己情况修改）
+CREATE TABLE schgraph.pk (    //属性定义表
+    id int PRIMARY KEY,
+    aggregate_type tinyint,
+    cardinality tinyint,   //表示该属性是单个值，还是集合？
+    data_type tinyint,
+    name text,
+    properties set&lt;int&gt;,
+    status tinyint,
+    user_data map&lt;text, text&gt;
+) WITH bloom_filter_fp_chance = 0.01
+    AND caching = {&apos;keys&apos;: &apos;ALL&apos;, &apos;rows_per_partition&apos;: &apos;NONE&apos;}
+    AND comment = &apos;&apos;
+    AND compaction = {&apos;class&apos;: &apos;org.apache.cassandra.db.compaction.SizeTieredCompactionStrategy&apos;, &apos;max_threshold&apos;: &apos;32&apos;, &apos;min_threshold&apos;: &apos;4&apos;}
+    AND compression = {&apos;chunk_length_in_kb&apos;: &apos;64&apos;, &apos;class&apos;: &apos;org.apache.cassandra.io.compress.LZ4Compressor&apos;}
+    AND crc_check_chance = 1.0
+    AND dclocal_read_repair_chance = 0.1
+    AND default_time_to_live = 0
+    AND gc_grace_seconds = 864000
+    AND max_index_interval = 2048
+    AND memtable_flush_period_in_ms = 0
+    AND min_index_interval = 128
+    AND read_repair_chance = 0.0
+    AND speculative_retry = &apos;99PERCENTILE&apos;;
+CREATE INDEX pk_name_index ON schgraph.pk (name);
+
+CREATE TABLE schgraph.vl (    //顶点定义表 
+    id int PRIMARY KEY,
+    enable_label_index boolean,
+    id_strategy tinyint,
+    index_labels set&lt;int&gt;,    //关联到index_label这张表
+    name text,
+    nullable_keys set&lt;int&gt;,
+    primary_keys list&lt;int&gt;,   
+    properties set&lt;int&gt;,    //关联到属性表
+    status tinyint,
+    user_data map&lt;text, text&gt;
+) WITH bloom_filter_fp_chance = 0.01
+    AND caching = {&apos;keys&apos;: &apos;ALL&apos;, &apos;rows_per_partition&apos;: &apos;NONE&apos;}
+    AND comment = &apos;&apos;
+    AND compaction = {&apos;class&apos;: &apos;org.apache.cassandra.db.compaction.SizeTieredCompactionStrategy&apos;, &apos;max_threshold&apos;: &apos;32&apos;, &apos;min_threshold&apos;: &apos;4&apos;}
+    AND compression = {&apos;chunk_length_in_kb&apos;: &apos;64&apos;, &apos;class&apos;: &apos;org.apache.cassandra.io.compress.LZ4Compressor&apos;}
+    AND crc_check_chance = 1.0
+    AND dclocal_read_repair_chance = 0.1
+    AND default_time_to_live = 0
+    AND gc_grace_seconds = 864000
+    AND max_index_interval = 2048
+    AND memtable_flush_period_in_ms = 0
+    AND min_index_interval = 128
+    AND read_repair_chance = 0.0
+    AND speculative_retry = &apos;99PERCENTILE&apos;;
+CREATE INDEX vl_name_index ON schgraph.vl (name);
+
+
+
+
+CREATE TABLE schgraph.il (   //index_label表，存储索引定义
+    id int PRIMARY KEY,
+    base_type tinyint,
+    base_value int,
+    fields list&lt;int&gt;,
+    index_type tinyint,
+    name text,
+    status tinyint
+) WITH bloom_filter_fp_chance = 0.01
+    AND caching = {&apos;keys&apos;: &apos;ALL&apos;, &apos;rows_per_partition&apos;: &apos;NONE&apos;}
+    AND comment = &apos;&apos;
+    AND compaction = {&apos;class&apos;: &apos;org.apache.cassandra.db.compaction.SizeTieredCompactionStrategy&apos;, &apos;max_threshold&apos;: &apos;32&apos;, &apos;min_threshold&apos;: &apos;4&apos;}
+    AND compression = {&apos;chunk_length_in_kb&apos;: &apos;64&apos;, &apos;class&apos;: &apos;org.apache.cassandra.io.compress.LZ4Compressor&apos;}
+    AND crc_check_chance = 1.0
+    AND dclocal_read_repair_chance = 0.1
+    AND default_time_to_live = 0
+    AND gc_grace_seconds = 864000
+    AND max_index_interval = 2048
+    AND memtable_flush_period_in_ms = 0
+    AND min_index_interval = 128
+    AND read_repair_chance = 0.0
+    AND speculative_retry = &apos;99PERCENTILE&apos;;
+CREATE INDEX il_name_index ON schgraph.il (name);
+
+
+
+
+CREATE TABLE schgraph.el (    //edge_label表，存储边的定义
+    id int PRIMARY KEY,
+    enable_label_index boolean,
+    frequency tinyint,
+    index_labels set&lt;int&gt;,
+    name text,
+    nullable_keys set&lt;int&gt;,
+    properties set&lt;int&gt;,
+    sort_keys list&lt;int&gt;,
+    source_label int,
+    status tinyint,
+    target_label int,
+    user_data map&lt;text, text&gt;
+) WITH bloom_filter_fp_chance = 0.01
+    AND caching = {&apos;keys&apos;: &apos;ALL&apos;, &apos;rows_per_partition&apos;: &apos;NONE&apos;}
+    AND comment = &apos;&apos;
+    AND compaction = {&apos;class&apos;: &apos;org.apache.cassandra.db.compaction.SizeTieredCompactionStrategy&apos;, &apos;max_threshold&apos;: &apos;32&apos;, &apos;min_threshold&apos;: &apos;4&apos;}
+    AND compression = {&apos;chunk_length_in_kb&apos;: &apos;64&apos;, &apos;class&apos;: &apos;org.apache.cassandra.io.compress.LZ4Compressor&apos;}
+    AND crc_check_chance = 1.0
+    AND dclocal_read_repair_chance = 0.1
+    AND default_time_to_live = 0
+    AND gc_grace_seconds = 864000
+    AND max_index_interval = 2048
+    AND memtable_flush_period_in_ms = 0
+    AND min_index_interval = 128
+    AND read_repair_chance = 0.0
+    AND speculative_retry = &apos;99PERCENTILE&apos;;
+CREATE INDEX el_name_index ON schgraph.el (name);
+
+
+ CREATE TABLE schgraph.g_v (  //graph_vertices顶点的具体存储
+    id blob PRIMARY KEY,
+    label int,
+    properties map&lt;int, blob&gt;
+) WITH bloom_filter_fp_chance = 0.01
+    AND caching = {&apos;keys&apos;: &apos;ALL&apos;, &apos;rows_per_partition&apos;: &apos;NONE&apos;}
+    AND comment = &apos;&apos;
+    AND compaction = {&apos;class&apos;: &apos;org.apache.cassandra.db.compaction.SizeTieredCompactionStrategy&apos;, &apos;max_threshold&apos;: &apos;32&apos;, &apos;min_threshold&apos;: &apos;4&apos;}
+    AND compression = {&apos;chunk_length_in_kb&apos;: &apos;64&apos;, &apos;class&apos;: &apos;org.apache.cassandra.io.compress.LZ4Compressor&apos;}
+    AND crc_check_chance = 1.0
+    AND dclocal_read_repair_chance = 0.1
+    AND default_time_to_live = 0
+    AND gc_grace_seconds = 864000
+    AND max_index_interval = 2048
+    AND memtable_flush_period_in_ms = 0
+    AND min_index_interval = 128
+    AND read_repair_chance = 0.0
+    AND speculative_retry = &apos;99PERCENTILE&apos;;
+CREATE INDEX g_v_label_index ON schgraph.g_v (label);
+
+
+CREATE TABLE schgraph.g_ie (   //边的具体存储
+    owner_vertex blob,
+    direction tinyint,
+    label int,
+    sort_values text,
+    other_vertex blob,
+    properties map&lt;int, blob&gt;,
+    PRIMARY KEY (owner_vertex, direction, label, sort_values, other_vertex)
+) WITH CLUSTERING ORDER BY (direction ASC, label ASC, sort_values ASC, other_vertex ASC)
+    AND bloom_filter_fp_chance = 0.01
+    AND caching = {&apos;keys&apos;: &apos;ALL&apos;, &apos;rows_per_partition&apos;: &apos;NONE&apos;}
+    AND comment = &apos;&apos;
+    AND compaction = {&apos;class&apos;: &apos;org.apache.cassandra.db.compaction.SizeTieredCompactionStrategy&apos;, &apos;max_threshold&apos;: &apos;32&apos;, &apos;min_threshold&apos;: &apos;4&apos;}
+    AND compression = {&apos;chunk_length_in_kb&apos;: &apos;64&apos;, &apos;class&apos;: &apos;org.apache.cassandra.io.compress.LZ4Compressor&apos;}
+    AND crc_check_chance = 1.0
+    AND dclocal_read_repair_chance = 0.1
+    AND default_time_to_live = 0
+    AND gc_grace_seconds = 864000
+    AND max_index_interval = 2048
+    AND memtable_flush_period_in_ms = 0
+    AND min_index_interval = 128
+    AND read_repair_chance = 0.0
+    AND speculative_retry = &apos;99PERCENTILE&apos;;        
+
+CREATE TABLE schgraph.g_oe (  //边的具体存储
+    owner_vertex blob,
+    direction tinyint,
+    label int,
+    sort_values text,
+    other_vertex blob,
+    properties map&lt;int, blob&gt;,
+    PRIMARY KEY (owner_vertex, direction, label, sort_values, other_vertex)
+) WITH CLUSTERING ORDER BY (direction ASC, label ASC, sort_values ASC, other_vertex ASC)
+    AND bloom_filter_fp_chance = 0.01
+    AND caching = {&apos;keys&apos;: &apos;ALL&apos;, &apos;rows_per_partition&apos;: &apos;NONE&apos;}
+    AND comment = &apos;&apos;
+    AND compaction = {&apos;class&apos;: &apos;org.apache.cassandra.db.compaction.SizeTieredCompactionStrategy&apos;, &apos;max_threshold&apos;: &apos;32&apos;, &apos;min_threshold&apos;: &apos;4&apos;}
+    AND compression = {&apos;chunk_length_in_kb&apos;: &apos;64&apos;, &apos;class&apos;: &apos;org.apache.cassandra.io.compress.LZ4Compressor&apos;}
+    AND crc_check_chance = 1.0
+    AND dclocal_read_repair_chance = 0.1
+    AND default_time_to_live = 0
+    AND gc_grace_seconds = 864000
+    AND max_index_interval = 2048
+    AND memtable_flush_period_in_ms = 0
+    AND min_index_interval = 128
+    AND read_repair_chance = 0.0
+    AND speculative_retry = &apos;99PERCENTILE&apos;;
+CREATE INDEX g_oe_label_index ON schgraph.g_oe (label);
+
+
+
+CREATE TABLE schgraph.s_v ( //整个系统的任务task执行情况，系统中存在很多异步任务，比如新增节点，修改节点都会触发rebuild index这类任务
+    id blob PRIMARY KEY,
+    label int,
+    properties map&lt;int, blob&gt;
+) WITH bloom_filter_fp_chance = 0.01
+    AND caching = {&apos;keys&apos;: &apos;ALL&apos;, &apos;rows_per_partition&apos;: &apos;NONE&apos;}
+    AND comment = &apos;&apos;
+    AND compaction = {&apos;class&apos;: &apos;org.apache.cassandra.db.compaction.SizeTieredCompactionStrategy&apos;, &apos;max_threshold&apos;: &apos;32&apos;, &apos;min_threshold&apos;: &apos;4&apos;}
+    AND compression = {&apos;chunk_length_in_kb&apos;: &apos;64&apos;, &apos;class&apos;: &apos;org.apache.cassandra.io.compress.LZ4Compressor&apos;}
+    AND crc_check_chance = 1.0
+    AND dclocal_read_repair_chance = 0.1
+    AND default_time_to_live = 0
+    AND gc_grace_seconds = 864000
+    AND max_index_interval = 2048
+    AND memtable_flush_period_in_ms = 0
+    AND min_index_interval = 128
+    AND read_repair_chance = 0.0
+    AND speculative_retry = &apos;99PERCENTILE&apos;;
+CREATE INDEX s_v_label_index ON schgraph.s_v (label);
+
+CREATE KEYSPACE schgraph WITH replication = {&apos;class&apos;: &apos;SimpleStrategy&apos;, &apos;replication_factor&apos;: &apos;3&apos;}  AND durable_writes = true;
+
+
+
+CREATE TABLE schgraph.s_ie (   //system task
+    owner_vertex blob,
+    direction tinyint,
+    label int,
+    sort_values text,
+    other_vertex blob,
+    properties map&lt;int, blob&gt;,
+    PRIMARY KEY (owner_vertex, direction, label, sort_values, other_vertex)
+) WITH CLUSTERING ORDER BY (direction ASC, label ASC, sort_values ASC, other_vertex ASC)
+    AND bloom_filter_fp_chance = 0.01
+    AND caching = {&apos;keys&apos;: &apos;ALL&apos;, &apos;rows_per_partition&apos;: &apos;NONE&apos;}
+    AND comment = &apos;&apos;
+    AND compaction = {&apos;class&apos;: &apos;org.apache.cassandra.db.compaction.SizeTieredCompactionStrategy&apos;, &apos;max_threshold&apos;: &apos;32&apos;, &apos;min_threshold&apos;: &apos;4&apos;}
+    AND compression = {&apos;chunk_length_in_kb&apos;: &apos;64&apos;, &apos;class&apos;: &apos;org.apache.cassandra.io.compress.LZ4Compressor&apos;}
+    AND crc_check_chance = 1.0
+    AND dclocal_read_repair_chance = 0.1
+    AND default_time_to_live = 0
+    AND gc_grace_seconds = 864000
+    AND max_index_interval = 2048
+    AND memtable_flush_period_in_ms = 0
+    AND min_index_interval = 128
+    AND read_repair_chance = 0.0
+    AND speculative_retry = &apos;99PERCENTILE&apos;;
+
+
+
+
+
+CREATE TABLE schgraph.s_oe (
+    owner_vertex blob,
+    direction tinyint,
+    label int,
+    sort_values text,
+    other_vertex blob,
+    properties map&lt;int, blob&gt;,
+    PRIMARY KEY (owner_vertex, direction, label, sort_values, other_vertex)
+) WITH CLUSTERING ORDER BY (direction ASC, label ASC, sort_values ASC, other_vertex ASC)
+    AND bloom_filter_fp_chance = 0.01
+    AND caching = {&apos;keys&apos;: &apos;ALL&apos;, &apos;rows_per_partition&apos;: &apos;NONE&apos;}
+    AND comment = &apos;&apos;
+    AND compaction = {&apos;class&apos;: &apos;org.apache.cassandra.db.compaction.SizeTieredCompactionStrategy&apos;, &apos;max_threshold&apos;: &apos;32&apos;, &apos;min_threshold&apos;: &apos;4&apos;}
+    AND compression = {&apos;chunk_length_in_kb&apos;: &apos;64&apos;, &apos;class&apos;: &apos;org.apache.cassandra.io.compress.LZ4Compressor&apos;}
+    AND crc_check_chance = 1.0
+    AND dclocal_read_repair_chance = 0.1
+    AND default_time_to_live = 0
+    AND gc_grace_seconds = 864000
+    AND max_index_interval = 2048
+    AND memtable_flush_period_in_ms = 0
+    AND min_index_interval = 128
+    AND read_repair_chance = 0.0
+    AND speculative_retry = &apos;99PERCENTILE&apos;;
+CREATE INDEX s_oe_label_index ON schgraph.s_oe (label);
+
+
+
+
+
+CREATE TABLE schgraph.c (   //counter表
+    schema_type text PRIMARY KEY,
+    id counter
+) WITH bloom_filter_fp_chance = 0.01
+    AND caching = {&apos;keys&apos;: &apos;ALL&apos;, &apos;rows_per_partition&apos;: &apos;NONE&apos;}
+    AND comment = &apos;&apos;
+    AND compaction = {&apos;class&apos;: &apos;org.apache.cassandra.db.compaction.SizeTieredCompactionStrategy&apos;, &apos;max_threshold&apos;: &apos;32&apos;, &apos;min_threshold&apos;: &apos;4&apos;}
+    AND compression = {&apos;chunk_length_in_kb&apos;: &apos;64&apos;, &apos;class&apos;: &apos;org.apache.cassandra.io.compress.LZ4Compressor&apos;}
+    AND crc_check_chance = 1.0
+    AND dclocal_read_repair_chance = 0.1
+    AND default_time_to_live = 0
+    AND gc_grace_seconds = 864000
+    AND max_index_interval = 2048
+    AND memtable_flush_period_in_ms = 0
+    AND min_index_interval = 128
+    AND read_repair_chance = 0.0
+    AND speculative_retry = &apos;99PERCENTILE&apos;;
+
+
+
+
+
+CREATE TABLE schgraph.s_ii (
+    index_label_id int,
+    field_values int,
+    element_ids blob,
+    PRIMARY KEY (index_label_id, field_values, element_ids)
+) WITH CLUSTERING ORDER BY (field_values ASC, element_ids ASC)
+    AND bloom_filter_fp_chance = 0.01
+    AND caching = {&apos;keys&apos;: &apos;ALL&apos;, &apos;rows_per_partition&apos;: &apos;NONE&apos;}
+    AND comment = &apos;&apos;
+    AND compaction = {&apos;class&apos;: &apos;org.apache.cassandra.db.compaction.SizeTieredCompactionStrategy&apos;, &apos;max_threshold&apos;: &apos;32&apos;, &apos;min_threshold&apos;: &apos;4&apos;}
+    AND compression = {&apos;chunk_length_in_kb&apos;: &apos;64&apos;, &apos;class&apos;: &apos;org.apache.cassandra.io.compress.LZ4Compressor&apos;}
+    AND crc_check_chance = 1.0
+    AND dclocal_read_repair_chance = 0.1
+    AND default_time_to_live = 0
+    AND gc_grace_seconds = 864000
+    AND max_index_interval = 2048
+    AND memtable_flush_period_in_ms = 0
+    AND min_index_interval = 128
+    AND read_repair_chance = 0.0
+    AND speculative_retry = &apos;99PERCENTILE&apos;;
+
+CREATE TABLE schgraph.g_di (  //属性值为double，对应的索引表？
+    index_label_id int,
+    field_values double,
+    element_ids blob,
+    PRIMARY KEY (index_label_id, field_values, element_ids)
+) WITH CLUSTERING ORDER BY (field_values ASC, element_ids ASC)
+    AND bloom_filter_fp_chance = 0.01
+    AND caching = {&apos;keys&apos;: &apos;ALL&apos;, &apos;rows_per_partition&apos;: &apos;NONE&apos;}
+    AND comment = &apos;&apos;
+    AND compaction = {&apos;class&apos;: &apos;org.apache.cassandra.db.compaction.SizeTieredCompactionStrategy&apos;, &apos;max_threshold&apos;: &apos;32&apos;, &apos;min_threshold&apos;: &apos;4&apos;}
+    AND compression = {&apos;chunk_length_in_kb&apos;: &apos;64&apos;, &apos;class&apos;: &apos;org.apache.cassandra.io.compress.LZ4Compressor&apos;}
+    AND crc_check_chance = 1.0
+    AND dclocal_read_repair_chance = 0.1
+    AND default_time_to_live = 0
+    AND gc_grace_seconds = 864000
+    AND max_index_interval = 2048
+    AND memtable_flush_period_in_ms = 0
+    AND min_index_interval = 128
+    AND read_repair_chance = 0.0
+    AND speculative_retry = &apos;99PERCENTILE&apos;;
+
+CREATE TABLE schgraph.g_fi (  //属性值为float对应的索引表？
+    index_label_id int,
+    field_values float,
+    element_ids blob,
+    PRIMARY KEY (index_label_id, field_values, element_ids)
+) WITH CLUSTERING ORDER BY (field_values ASC, element_ids ASC)
+    AND bloom_filter_fp_chance = 0.01
+    AND caching = {&apos;keys&apos;: &apos;ALL&apos;, &apos;rows_per_partition&apos;: &apos;NONE&apos;}
+    AND comment = &apos;&apos;
+    AND compaction = {&apos;class&apos;: &apos;org.apache.cassandra.db.compaction.SizeTieredCompactionStrategy&apos;, &apos;max_threshold&apos;: &apos;32&apos;, &apos;min_threshold&apos;: &apos;4&apos;}
+    AND compression = {&apos;chunk_length_in_kb&apos;: &apos;64&apos;, &apos;class&apos;: &apos;org.apache.cassandra.io.compress.LZ4Compressor&apos;}
+    AND crc_check_chance = 1.0
+    AND dclocal_read_repair_chance = 0.1
+    AND default_time_to_live = 0
+    AND gc_grace_seconds = 864000
+    AND max_index_interval = 2048
+    AND memtable_flush_period_in_ms = 0
+    AND min_index_interval = 128
+    AND read_repair_chance = 0.0
+    AND speculative_retry = &apos;99PERCENTILE&apos;;
+
+
+
+CREATE TABLE schgraph.g_hi (  //属性为text对应的索引表？？
+    index_label_id int,
+    field_values text,
+    element_ids blob,
+    PRIMARY KEY (index_label_id, field_values, element_ids)
+) WITH CLUSTERING ORDER BY (field_values ASC, element_ids ASC)
+    AND bloom_filter_fp_chance = 0.01
+    AND caching = {&apos;keys&apos;: &apos;ALL&apos;, &apos;rows_per_partition&apos;: &apos;NONE&apos;}
+    AND comment = &apos;&apos;
+    AND compaction = {&apos;class&apos;: &apos;org.apache.cassandra.db.compaction.SizeTieredCompactionStrategy&apos;, &apos;max_threshold&apos;: &apos;32&apos;, &apos;min_threshold&apos;: &apos;4&apos;}
+    AND compression = {&apos;chunk_length_in_kb&apos;: &apos;64&apos;, &apos;class&apos;: &apos;org.apache.cassandra.io.compress.LZ4Compressor&apos;}
+    AND crc_check_chance = 1.0
+    AND dclocal_read_repair_chance = 0.1
+    AND default_time_to_live = 0
+    AND gc_grace_seconds = 864000
+    AND max_index_interval = 2048
+    AND memtable_flush_period_in_ms = 0
+    AND min_index_interval = 128
+    AND read_repair_chance = 0.0
+    AND speculative_retry = &apos;99PERCENTILE&apos;;
+
+CREATE TABLE schgraph.s_ai (
+    field_values text,
+    index_label_id int,
+    element_ids blob,
+    PRIMARY KEY (field_values, index_label_id, element_ids)
+) WITH CLUSTERING ORDER BY (index_label_id ASC, element_ids ASC)
+    AND bloom_filter_fp_chance = 0.01
+    AND caching = {&apos;keys&apos;: &apos;ALL&apos;, &apos;rows_per_partition&apos;: &apos;NONE&apos;}
+    AND comment = &apos;&apos;
+    AND compaction = {&apos;class&apos;: &apos;org.apache.cassandra.db.compaction.SizeTieredCompactionStrategy&apos;, &apos;max_threshold&apos;: &apos;32&apos;, &apos;min_threshold&apos;: &apos;4&apos;}
+    AND compression = {&apos;chunk_length_in_kb&apos;: &apos;64&apos;, &apos;class&apos;: &apos;org.apache.cassandra.io.compress.LZ4Compressor&apos;}
+    AND crc_check_chance = 1.0
+    AND dclocal_read_repair_chance = 0.1
+    AND default_time_to_live = 0
+    AND gc_grace_seconds = 864000
+    AND max_index_interval = 2048
+    AND memtable_flush_period_in_ms = 0
+    AND min_index_interval = 128
+    AND read_repair_chance = 0.0
+    AND speculative_retry = &apos;99PERCENTILE&apos;;
+
+
+
+CREATE TABLE schgraph.s_hi (
+    index_label_id int,
+    field_values text,
+    element_ids blob,
+    PRIMARY KEY (index_label_id, field_values, element_ids)
+) WITH CLUSTERING ORDER BY (field_values ASC, element_ids ASC)
+    AND bloom_filter_fp_chance = 0.01
+    AND caching = {&apos;keys&apos;: &apos;ALL&apos;, &apos;rows_per_partition&apos;: &apos;NONE&apos;}
+    AND comment = &apos;&apos;
+    AND compaction = {&apos;class&apos;: &apos;org.apache.cassandra.db.compaction.SizeTieredCompactionStrategy&apos;, &apos;max_threshold&apos;: &apos;32&apos;, &apos;min_threshold&apos;: &apos;4&apos;}
+    AND compression = {&apos;chunk_length_in_kb&apos;: &apos;64&apos;, &apos;class&apos;: &apos;org.apache.cassandra.io.compress.LZ4Compressor&apos;}
+    AND crc_check_chance = 1.0
+    AND dclocal_read_repair_chance = 0.1
+    AND default_time_to_live = 0
+    AND gc_grace_seconds = 864000
+    AND max_index_interval = 2048
+    AND memtable_flush_period_in_ms = 0
+    AND min_index_interval = 128
+    AND read_repair_chance = 0.0
+    AND speculative_retry = &apos;99PERCENTILE&apos;;
+
+
+
+CREATE TABLE schgraph.s_si (
+    field_values text,
+    index_label_id int,
+    element_ids blob,
+    PRIMARY KEY (field_values, index_label_id, element_ids)
+) WITH CLUSTERING ORDER BY (index_label_id ASC, element_ids ASC)
+    AND bloom_filter_fp_chance = 0.01
+    AND caching = {&apos;keys&apos;: &apos;ALL&apos;, &apos;rows_per_partition&apos;: &apos;NONE&apos;}
+    AND comment = &apos;&apos;
+    AND compaction = {&apos;class&apos;: &apos;org.apache.cassandra.db.compaction.SizeTieredCompactionStrategy&apos;, &apos;max_threshold&apos;: &apos;32&apos;, &apos;min_threshold&apos;: &apos;4&apos;}
+    AND compression = {&apos;chunk_length_in_kb&apos;: &apos;64&apos;, &apos;class&apos;: &apos;org.apache.cassandra.io.compress.LZ4Compressor&apos;}
+    AND crc_check_chance = 1.0
+    AND dclocal_read_repair_chance = 0.1
+    AND default_time_to_live = 0
+    AND gc_grace_seconds = 864000
+    AND max_index_interval = 2048
+    AND memtable_flush_period_in_ms = 0
+    AND min_index_interval = 128
+    AND read_repair_chance = 0.0
+    AND speculative_retry = &apos;99PERCENTILE&apos;;
+
+CREATE TABLE schgraph.s_di (
+    index_label_id int,
+    field_values double,
+    element_ids blob,
+    PRIMARY KEY (index_label_id, field_values, element_ids)
+) WITH CLUSTERING ORDER BY (field_values ASC, element_ids ASC)
+    AND bloom_filter_fp_chance = 0.01
+    AND caching = {&apos;keys&apos;: &apos;ALL&apos;, &apos;rows_per_partition&apos;: &apos;NONE&apos;}
+    AND comment = &apos;&apos;
+    AND compaction = {&apos;class&apos;: &apos;org.apache.cassandra.db.compaction.SizeTieredCompactionStrategy&apos;, &apos;max_threshold&apos;: &apos;32&apos;, &apos;min_threshold&apos;: &apos;4&apos;}
+    AND compression = {&apos;chunk_length_in_kb&apos;: &apos;64&apos;, &apos;class&apos;: &apos;org.apache.cassandra.io.compress.LZ4Compressor&apos;}
+    AND crc_check_chance = 1.0
+    AND dclocal_read_repair_chance = 0.1
+    AND default_time_to_live = 0
+    AND gc_grace_seconds = 864000
+    AND max_index_interval = 2048
+    AND memtable_flush_period_in_ms = 0
+    AND min_index_interval = 128
+    AND read_repair_chance = 0.0
+    AND speculative_retry = &apos;99PERCENTILE&apos;;
+
+CREATE TABLE schgraph.s_li (
+    index_label_id int,
+    field_values bigint,
+    element_ids blob,
+    PRIMARY KEY (index_label_id, field_values, element_ids)
+) WITH CLUSTERING ORDER BY (field_values ASC, element_ids ASC)
+    AND bloom_filter_fp_chance = 0.01
+    AND caching = {&apos;keys&apos;: &apos;ALL&apos;, &apos;rows_per_partition&apos;: &apos;NONE&apos;}
+    AND comment = &apos;&apos;
+    AND compaction = {&apos;class&apos;: &apos;org.apache.cassandra.db.compaction.SizeTieredCompactionStrategy&apos;, &apos;max_threshold&apos;: &apos;32&apos;, &apos;min_threshold&apos;: &apos;4&apos;}
+    AND compression = {&apos;chunk_length_in_kb&apos;: &apos;64&apos;, &apos;class&apos;: &apos;org.apache.cassandra.io.compress.LZ4Compressor&apos;}
+    AND crc_check_chance = 1.0
+    AND dclocal_read_repair_chance = 0.1
+    AND default_time_to_live = 0
+    AND gc_grace_seconds = 864000
+    AND max_index_interval = 2048
+    AND memtable_flush_period_in_ms = 0
+    AND min_index_interval = 128
+    AND read_repair_chance = 0.0
+    AND speculative_retry = &apos;99PERCENTILE&apos;;
+
+CREATE TABLE schgraph.s_ui (
+    field_values text,
+    index_label_id int,
+    element_ids blob,
+    PRIMARY KEY (field_values, index_label_id, element_ids)
+) WITH CLUSTERING ORDER BY (index_label_id ASC, element_ids ASC)
+    AND bloom_filter_fp_chance = 0.01
+    AND caching = {&apos;keys&apos;: &apos;ALL&apos;, &apos;rows_per_partition&apos;: &apos;NONE&apos;}
+    AND comment = &apos;&apos;
+    AND compaction = {&apos;class&apos;: &apos;org.apache.cassandra.db.compaction.SizeTieredCompactionStrategy&apos;, &apos;max_threshold&apos;: &apos;32&apos;, &apos;min_threshold&apos;: &apos;4&apos;}
+    AND compression = {&apos;chunk_length_in_kb&apos;: &apos;64&apos;, &apos;class&apos;: &apos;org.apache.cassandra.io.compress.LZ4Compressor&apos;}
+    AND crc_check_chance = 1.0
+    AND dclocal_read_repair_chance = 0.1
+    AND default_time_to_live = 0
+    AND gc_grace_seconds = 864000
+    AND max_index_interval = 2048
+    AND memtable_flush_period_in_ms = 0
+    AND min_index_interval = 128
+    AND read_repair_chance = 0.0
+    AND speculative_retry = &apos;99PERCENTILE&apos;;
+
+CREATE TABLE schgraph.g_li (  //属性值为long对应的索引表？
+    index_label_id int,  //对应index_label里面的索引id
+    field_values bigint,
+    element_ids blob,
+    PRIMARY KEY (index_label_id, field_values, element_ids)
+) WITH CLUSTERING ORDER BY (field_values ASC, element_ids ASC)
+    AND bloom_filter_fp_chance = 0.01
+    AND caching = {&apos;keys&apos;: &apos;ALL&apos;, &apos;rows_per_partition&apos;: &apos;NONE&apos;}
+    AND comment = &apos;&apos;
+    AND compaction = {&apos;class&apos;: &apos;org.apache.cassandra.db.compaction.SizeTieredCompactionStrategy&apos;, &apos;max_threshold&apos;: &apos;32&apos;, &apos;min_threshold&apos;: &apos;4&apos;}
+    AND compression = {&apos;chunk_length_in_kb&apos;: &apos;64&apos;, &apos;class&apos;: &apos;org.apache.cassandra.io.compress.LZ4Compressor&apos;}
+    AND crc_check_chance = 1.0
+    AND dclocal_read_repair_chance = 0.1
+    AND default_time_to_live = 0
+    AND gc_grace_seconds = 864000
+    AND max_index_interval = 2048
+    AND memtable_flush_period_in_ms = 0
+    AND min_index_interval = 128
+    AND read_repair_chance = 0.0
+    AND speculative_retry = &apos;99PERCENTILE&apos;;
+
+
+
+CREATE TABLE schgraph.g_ii (  //属性值为int对应的索引表？
+    index_label_id int,
+    field_values int,
+    element_ids blob,
+    PRIMARY KEY (index_label_id, field_values, element_ids)
+) WITH CLUSTERING ORDER BY (field_values ASC, element_ids ASC)
+    AND bloom_filter_fp_chance = 0.01
+    AND caching = {&apos;keys&apos;: &apos;ALL&apos;, &apos;rows_per_partition&apos;: &apos;NONE&apos;}
+    AND comment = &apos;&apos;
+    AND compaction = {&apos;class&apos;: &apos;org.apache.cassandra.db.compaction.SizeTieredCompactionStrategy&apos;, &apos;max_threshold&apos;: &apos;32&apos;, &apos;min_threshold&apos;: &apos;4&apos;}
+    AND compression = {&apos;chunk_length_in_kb&apos;: &apos;64&apos;, &apos;class&apos;: &apos;org.apache.cassandra.io.compress.LZ4Compressor&apos;}
+    AND crc_check_chance = 1.0
+    AND dclocal_read_repair_chance = 0.1
+    AND default_time_to_live = 0
+    AND gc_grace_seconds = 864000
+    AND max_index_interval = 2048
+    AND memtable_flush_period_in_ms = 0
+    AND min_index_interval = 128
+    AND read_repair_chance = 0.0
+    AND speculative_retry = &apos;99PERCENTILE&apos;;
+
+CREATE TABLE schgraph.g_ai (  //和g_hi的区别在哪里？
+    field_values text,
+    index_label_id int,
+    element_ids blob,
+    PRIMARY KEY (field_values, index_label_id, element_ids)
+) WITH CLUSTERING ORDER BY (index_label_id ASC, element_ids ASC)
+    AND bloom_filter_fp_chance = 0.01
+    AND caching = {&apos;keys&apos;: &apos;ALL&apos;, &apos;rows_per_partition&apos;: &apos;NONE&apos;}
+    AND comment = &apos;&apos;
+    AND compaction = {&apos;class&apos;: &apos;org.apache.cassandra.db.compaction.SizeTieredCompactionStrategy&apos;, &apos;max_threshold&apos;: &apos;32&apos;, &apos;min_threshold&apos;: &apos;4&apos;}
+    AND compression = {&apos;chunk_length_in_kb&apos;: &apos;64&apos;, &apos;class&apos;: &apos;org.apache.cassandra.io.compress.LZ4Compressor&apos;}
+    AND crc_check_chance = 1.0
+    AND dclocal_read_repair_chance = 0.1
+    AND default_time_to_live = 0
+    AND gc_grace_seconds = 864000
+    AND max_index_interval = 2048
+    AND memtable_flush_period_in_ms = 0
+    AND min_index_interval = 128
+    AND read_repair_chance = 0.0
+    AND speculative_retry = &apos;99PERCENTILE&apos;;
+
+CREATE TABLE schgraph.s_fi (
+    index_label_id int,
+    field_values float,
+    element_ids blob,
+    PRIMARY KEY (index_label_id, field_values, element_ids)
+) WITH CLUSTERING ORDER BY (field_values ASC, element_ids ASC)
+    AND bloom_filter_fp_chance = 0.01
+    AND caching = {&apos;keys&apos;: &apos;ALL&apos;, &apos;rows_per_partition&apos;: &apos;NONE&apos;}
+    AND comment = &apos;&apos;
+    AND compaction = {&apos;class&apos;: &apos;org.apache.cassandra.db.compaction.SizeTieredCompactionStrategy&apos;, &apos;max_threshold&apos;: &apos;32&apos;, &apos;min_threshold&apos;: &apos;4&apos;}
+    AND compression = {&apos;chunk_length_in_kb&apos;: &apos;64&apos;, &apos;class&apos;: &apos;org.apache.cassandra.io.compress.LZ4Compressor&apos;}
+    AND crc_check_chance = 1.0
+    AND dclocal_read_repair_chance = 0.1
+    AND default_time_to_live = 0
+    AND gc_grace_seconds = 864000
+    AND max_index_interval = 2048
+    AND memtable_flush_period_in_ms = 0
+    AND min_index_interval = 128
+    AND read_repair_chance = 0.0
+    AND speculative_retry = &apos;99PERCENTILE&apos;;
+
+
+    CREATE TABLE schgraph.g_si (  //🎧s
+    field_values text,
+    index_label_id int,
+    element_ids blob,
+    PRIMARY KEY (field_values, index_label_id, element_ids)
+) WITH CLUSTERING ORDER BY (index_label_id ASC, element_ids ASC)
+    AND bloom_filter_fp_chance = 0.01
+    AND caching = {&apos;keys&apos;: &apos;ALL&apos;, &apos;rows_per_partition&apos;: &apos;NONE&apos;}
+    AND comment = &apos;&apos;
+    AND compaction = {&apos;class&apos;: &apos;org.apache.cassandra.db.compaction.SizeTieredCompactionStrategy&apos;, &apos;max_threshold&apos;: &apos;32&apos;, &apos;min_threshold&apos;: &apos;4&apos;}
+    AND compression = {&apos;chunk_length_in_kb&apos;: &apos;64&apos;, &apos;class&apos;: &apos;org.apache.cassandra.io.compress.LZ4Compressor&apos;}
+    AND crc_check_chance = 1.0
+    AND dclocal_read_repair_chance = 0.1
+    AND default_time_to_live = 0
+    AND gc_grace_seconds = 864000
+    AND max_index_interval = 2048
+    AND memtable_flush_period_in_ms = 0
+    AND min_index_interval = 128
+    AND read_repair_chance = 0.0
+    AND speculative_retry = &apos;99PERCENTILE&apos;;
+
+
+
+    CREATE TABLE schgraph.g_ui (
+    field_values text,
+    index_label_id int,
+    element_ids blob,
+    PRIMARY KEY (field_values, index_label_id, element_ids)
+) WITH CLUSTERING ORDER BY (index_label_id ASC, element_ids ASC)
+    AND bloom_filter_fp_chance = 0.01
+    AND caching = {&apos;keys&apos;: &apos;ALL&apos;, &apos;rows_per_partition&apos;: &apos;NONE&apos;}
+    AND comment = &apos;&apos;
+    AND compaction = {&apos;class&apos;: &apos;org.apache.cassandra.db.compaction.SizeTieredCompactionStrategy&apos;, &apos;max_threshold&apos;: &apos;32&apos;, &apos;min_threshold&apos;: &apos;4&apos;}
+    AND compression = {&apos;chunk_length_in_kb&apos;: &apos;64&apos;, &apos;class&apos;: &apos;org.apache.cassandra.io.compress.LZ4Compressor&apos;}
+    AND crc_check_chance = 1.0
+    AND dclocal_read_repair_chance = 0.1
+    AND default_time_to_live = 0
+    AND gc_grace_seconds = 864000
+    AND max_index_interval = 2048
+    AND memtable_flush_period_in_ms = 0
+    AND min_index_interval = 128
+    AND read_repair_chance = 0.0
+    AND speculative_retry = &apos;99PERCENTILE&apos;;
+</code></pre><p>###详细示例</p>
+<p>####1.图定义</p>
+<pre><code>graph.schema().propertyKey(&quot;uid&quot;).asText().ifNotExist().create();
+graph.schema().propertyKey(&quot;shorturl&quot;).asText().ifNotExist().create();
+graph.schema().propertyKey(&quot;timestamp&quot;).asLong().ifNotExist().create();
+graph.schema().vertexLabel(&quot;person&quot;).properties(&quot;uid&quot;).primaryKeys(&quot;uid&quot;).ifNotExist().create();
+graph.schema().vertexLabel(&quot;shorturl&quot;).properties(&quot;shorturl&quot;).primaryKeys(&quot;shorturl&quot;).ifNotExist().create();
+graph.schema().indexLabel(&quot;createByTime&quot;).onE(&quot;create&quot;).by(&quot;timestamp&quot;).range().ifNotExist().create();
+
+
+
+cqlsh:hgraphtest&gt; select * from pk;                 
+
+ id  | aggregate_type | cardinality | data_type | name               | properties | status | user_data
+-----+----------------+-------------+-----------+--------------------+------------+--------+----------------------
+   1 |              0 |           1 |         8 |                uid |       null |      1 |                 null
+    2 |              0 |           1 |         8 |           shorturl |       null |      1 |                 null
+    3 |              0 |           1 |         5 |          timestamp |       null |      1 |                 null
+
+
+
+    cqlsh:hgraphtest&gt; select * from vl;  
+
+ id  | enable_label_index | id_strategy | index_labels | name     | nullable_keys             | primary_keys | properties                                                   | status | user_data
+-----+--------------------+-------------+--------------+----------+---------------------------+--------------+--------------------------------------------------------------+--------+-----------
+   1 |               True |           2 |         null |   person |                      null |          [1] |                                                          {1} |      1 |      null
+   2 |               True |           2 |         null | shorturl |                      null |          [2] |                                                          {2} |      1 |      null  
+
+cqlsh:hgraphtest&gt; select * from il;
+
+ id  | base_type | base_value | fields | index_type | name                        | status
+-----+-----------+------------+--------+------------+-----------------------------+--------
+   1 |         2 |          1 |    [3] |         23 |                createByTime |      2
+
+
+
+    cqlsh:hgraphtest&gt; select * from el;
+
+ id | enable_label_index | frequency | index_labels | name   | nullable_keys | properties | sort_keys | source_label | status | target_label | user_data
+----+--------------------+-----------+--------------+--------+---------------+------------+-----------+--------------+--------+--------------+-----------
+  1 |               True |         1 |          {1} | create |          null |        {3} |      null |            1 |      1 |            2 |      null
+
+(1 rows)
+</code></pre><p>因为我们没有插入顶点和边，这时候g_v,g_ie,g_oe都为空,统计表如图：</p>
+<p>cqlsh:hgraphtest&gt; select * from c;   </p>
+<pre><code> schema_type  | id
+--------------+----
+ PROPERTY_KEY |  3
+ VERTEX_LABEL |  2
+   SYS_SCHEMA | 47
+  INDEX_LABEL |  1
+   EDGE_LABEL |  1
+         TASK |  1
+</code></pre><p>####2.插入顶点</p>
+<p>marko = graph.addVertex(T.label, “person”, “uid”,”2229095301”)<br>url=graph.addVertex(T.label, “shorturl”, “shorturl”,”MfDALoIBLMXbuQIezN6T2Q”)</p>
+<p>  cqlsh:hgraphtest&gt; select * from g_v;</p>
+<p> id                                                   | label | properties<br>——————————————————+——-+——————————————————-<br>                         0x8b313a32323239303935333031 |     1 |                         {1: 0x0a32323239303935333031}<br> 0x97323a4d6644414c6f49424c4d5862755149657a4e36543251 |     2 | {2: 0x164d6644414c6f49424c4d5862755149657a4e36543251}</p>
+<p>####3.插入边</p>
+<p>marko.addEdge(“create”, url, “timestamp”, 1587779170)</p>
+<pre><code>cqlsh:hgraphtest&gt; select * from g_oe;
+
+ owner_vertex                 | direction | label | sort_values | other_vertex                                         | properties
+------------------------------+-----------+-------+-------------+------------------------------------------------------+-------------------
+ 0x8b313a32323239303935333031 |      -126 |     1 |             | 0x97323a4d6644414c6f49424c4d5862755149657a4e36543251 | {3: 0x85f58eac62}
+
+(1 rows)
+cqlsh:hgraphtest&gt; select * from g_ie;
+
+ owner_vertex                                         | direction | label | sort_values | other_vertex                 | properties
+------------------------------------------------------+-----------+-------+-------------+------------------------------+-------------------
+ 0x97323a4d6644414c6f49424c4d5862755149657a4e36543251 |      -116 |     1 |             | 0x8b313a32323239303935333031 | {3: 0x85f58eac62}
+
+(1 rows)
+
+
+cqlsh:hgraphtest&gt; select * from g_li;(timestamp对应的那个range索引)
+
+ index_label_id | field_values | element_ids
+----------------+--------------+------------------------------------------------------------------------------------------
+              1 |   1587779170 | 0x7e8b313a32323239303935333031820801ff97323a4d6644414c6f49424c4d5862755149657a4e36543251
+</code></pre>
+      
+    </div>
+    <footer class="article-footer">
+      <a data-url="http://yoursite.com/2020/05/17/hugegraph-cassadra底层存储实现/" data-id="ckaafjsg10001ci3cw8puodmm" class="article-share-link">Share</a>
+      
+      
+    </footer>
+  </div>
+  
+</article>
+
+
+
   
     <article id="post-spark-graphx计算pagerank源代码分析" class="article article-type-post" itemscope itemprop="blogPost">
   <div class="article-meta">
@@ -205,7 +964,7 @@
       
     </div>
     <footer class="article-footer">
-      <a data-url="http://yoursite.com/2020/05/17/spark-graphx计算pagerank源代码分析/" data-id="ckaafcx5k00016y3c5km6hxfi" class="article-share-link">Partager</a>
+      <a data-url="http://yoursite.com/2020/05/17/spark-graphx计算pagerank源代码分析/" data-id="ckaafjsge0003ci3c4j50a3lv" class="article-share-link">Share</a>
       
       
     </footer>
@@ -437,7 +1196,7 @@
       
     </div>
     <footer class="article-footer">
-      <a data-url="http://yoursite.com/2018/03/29/druid安装配置-数据导入/" data-id="ckaafcx5a00006y3corrmtr4n" class="article-share-link">Partager</a>
+      <a data-url="http://yoursite.com/2018/03/29/druid安装配置-数据导入/" data-id="ckaafjsfi0000ci3c49hbilpd" class="article-share-link">Share</a>
       
       
     </footer>
@@ -501,7 +1260,7 @@ export SPARK_PREPEND_CLASSES=1
       
     </div>
     <footer class="article-footer">
-      <a data-url="http://yoursite.com/2018/03/02/spark远程调试/" data-id="ckaafcx7000076y3cou4zqovq" class="article-share-link">Partager</a>
+      <a data-url="http://yoursite.com/2018/03/02/spark远程调试/" data-id="ckaafjsgn0005ci3cp844pcrt" class="article-share-link">Share</a>
       
       
     </footer>
@@ -742,7 +1501,7 @@ export SPARK_PREPEND_CLASSES=1
       
     </div>
     <footer class="article-footer">
-      <a data-url="http://yoursite.com/2018/01/11/原创－flume写hdfs性能优化/" data-id="ckaafcx7400086y3c28o7dyid" class="article-share-link">Partager</a>
+      <a data-url="http://yoursite.com/2018/01/11/原创－flume写hdfs性能优化/" data-id="ckaafjsgw0009ci3ciohs8zo5" class="article-share-link">Share</a>
       
       
     </footer>
@@ -835,7 +1594,7 @@ spark.executor.extraJavaOptions  -XX:+PrintGCDetails -XX:+PrintGCTimeStamps
       
     </div>
     <footer class="article-footer">
-      <a data-url="http://yoursite.com/2017/04/19/spark-on-yarn情况下historyserver的配置/" data-id="ckaafcx6s00056y3cen5g2tua" class="article-share-link">Partager</a>
+      <a data-url="http://yoursite.com/2017/04/19/spark-on-yarn情况下historyserver的配置/" data-id="ckaafjsh5000aci3cva05g30o" class="article-share-link">Share</a>
       
       
     </footer>
@@ -1172,7 +1931,7 @@ spark.sql.parquet.compression.codec=snappy
       
     </div>
     <footer class="article-footer">
-      <a data-url="http://yoursite.com/2017/04/13/spark中parquet文件写入优化/" data-id="ckaafcx6p00046y3c0clxrcug" class="article-share-link">Partager</a>
+      <a data-url="http://yoursite.com/2017/04/13/spark中parquet文件写入优化/" data-id="ckaafjsgg0004ci3cmmg8o5qi" class="article-share-link">Share</a>
       
       
     </footer>
@@ -1370,7 +2129,7 @@ dfs.client.failover.proxy.provider.smallfile = org.apache.hadoop.hdfs.server.nam
       
     </div>
     <footer class="article-footer">
-      <a data-url="http://yoursite.com/2017/04/13/在kerberos-HA环境下的ranger编译安装/" data-id="ckaafcx79000a6y3c44ssyu9u" class="article-share-link">Partager</a>
+      <a data-url="http://yoursite.com/2017/04/13/在kerberos-HA环境下的ranger编译安装/" data-id="ckaafjsgs0007ci3cq36oe6fu" class="article-share-link">Share</a>
       
       
     </footer>
@@ -1388,7 +2147,7 @@ dfs.client.failover.proxy.provider.smallfile = org.apache.hadoop.hdfs.server.nam
   
     
   <div class="widget-wrap">
-    <h3 class="widget-title">Catégories</h3>
+    <h3 class="widget-title">Categories</h3>
     <div class="widget">
       <ul class="category-list"><li class="category-list-item"><a class="category-list-link" href="/categories/性能优化/">性能优化</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/源码调试/">源码调试</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/部署文档/">部署文档</a></li></ul>
     </div>
@@ -1413,9 +2172,13 @@ dfs.client.failover.proxy.provider.smallfile = org.apache.hadoop.hdfs.server.nam
   
     
   <div class="widget-wrap">
-    <h3 class="widget-title">Articles récents</h3>
+    <h3 class="widget-title">Recent Posts</h3>
     <div class="widget">
       <ul>
+        
+          <li>
+            <a href="/2020/05/17/hugegraph-cassadra底层存储实现/">hugegraph+cassadra底层存储实现</a>
+          </li>
         
           <li>
             <a href="/2020/05/17/spark-graphx计算pagerank源代码分析/">spark graphx计算pagerank源代码分析</a>
@@ -1433,10 +2196,6 @@ dfs.client.failover.proxy.provider.smallfile = org.apache.hadoop.hdfs.server.nam
             <a href="/2018/01/11/原创－flume写hdfs性能优化/">原创-flume写hdfs性能优化</a>
           </li>
         
-          <li>
-            <a href="/2017/04/19/spark-on-yarn情况下historyserver的配置/">原创-spark-on-yarn情况下historyserver的配置</a>
-          </li>
-        
       </ul>
     </div>
   </div>
@@ -1450,7 +2209,7 @@ dfs.client.failover.proxy.provider.smallfile = org.apache.hadoop.hdfs.server.nam
   <div class="outer">
     <div id="footer-info" class="inner">
       &copy; 2020 XiueChen<br>
-      Propulsé by <a href="http://hexo.io/" target="_blank">Hexo</a>
+      Powered by <a href="http://hexo.io/" target="_blank">Hexo</a>
       <script async src="//dn-lbstatics.qbox.me/busuanzi/2.3/busuanzi.pure.mini.js"></script>
       <span id="busuanzi_container_site_uv"><br />本站访客数<span id="busuanzi_value_site_uv"></span>人次
       <span id="busuanzi_container_site_pv"><br />本站访问次数<span id="busuanzi_value_site_pv"></span>
